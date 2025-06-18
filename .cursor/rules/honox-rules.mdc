@@ -1,0 +1,149 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Tech stack: HonoX project
+
+This project uses the following technology stack and its official documentation:
+
+- HonoX (file-based routing and SSR framework)
+https://github.com/honojs/honox
+
+- Hono (fast web framework, foundation of HonoX)
+https://hono.dev/
+
+- Vite (fast build tool)
+https://vitejs.dev/
+
+# Overview and rules of HonoX
+
+## Architecture and design philosophy of HonoX
+
+HonoX is based on the concept of "simple and fast meta-framework" and is built on Hono, Vite, and UI libraries.
+
+# Coding style
+
+## Layering rules
+
+### Domain Layer
+
+- Expresses the core rules and concepts of the business
+- Consists of entities and value objects
+- Value objects are designed to be immutable and have self-validation functions
+- File location: Placed in the `src/domain/` directory
+- Naming rules: Use clear nouns for domain objects
+- Function names for creating value objects should be unified with `create~`
+- If validation fails, return ValidationError in Result.err
+- Contains only pure logic with no external dependencies
+- Use names that accurately reflect the terminology of the business domain
+
+### Repository Layer
+
+- Responsible for abstracting data access
+- File location: Placed in the `src/repositories/` directory
+- Naming rules: Interface is "~Repository", implementation is "~RepositoryImpl"
+- All repositories must have an interface
+- Method names use verbs that reflect CRUD operations (get, create, update, delete)
+- The implementation class is decorated with the `@injectable()` decorator
+- Method arguments are defined as a single object parameter
+- The return value is always in the format of `Promise<Result<success type, error type>>`
+- Handling errors related to communication with external services and database access
+- Responsible for converting between domain layer objects and external data
+- Encapsulates logic specific to storage and external API services here
+
+### Usecase Layer
+
+- Responsible for implementing business logic
+- File location: Place in the `src/usecases/` directory
+- Naming rule: Class names are unified with "〜Usecase"
+- Method names start with a verb that represents the use case
+- All usecase classes use the `@injectable()` decorator
+- Inject the necessary repositories in the constructor and store them as private fields
+- Method arguments are received as a single object
+- The return value is always in the format of `Promise<Result<success type, error type>>`
+- Implement high-level processing combining multiple repositories
+- Transform data for the presentation layer (create DTO)
+- Execute validation based on domain rules
+- Manage transactions and coordinate between multiple repositories
+- Implement error handling related to business logic
+
+### Presentation Layer
+
+- Responsible for user interface and user input processing
+- File location: Place in `app/routes/` directory
+- Naming convention: Follow HonoX's file-based routing convention
+- Islands components are placed in `app/islands/` or files with `$` prefix
+- Define route handlers using `createRoute()`
+- Get and execute the appropriate use case from the DI container
+- Render UI or redirect based on the result of the use case
+- Implement basic validation of input data (detailed validation is done in the use case layer)
+- Provide error handling and user-friendly feedback
+- Limit UI state management to the Islands component
+- Server-side route handlers are only responsible for rendering or JSON response
+- Consistent pattern for displaying results of form submissions and asynchronous processes
+
+## Cross-cutting Concerns
+
+### Error Handling
+
+- Directory names should be in kebab case (e.g. components/auth-form)
+- Custom error classes should be defined in `src/types/error.ts`
+- Error classes should be named to represent the specific error type (e.g. ValidationError, DatabaseError)
+- Consistently use the Result type from the `neverthrow` package
+- Utilize the cause parameter to preserve stack traces when errors occur
+- Error messages should be specific and meaningful to the user
+- Errors that occur in the repository layer should be appropriately translated within that layer
+- Catch exceptions and return them explicitly as Result.err
+
+### Dependency Injection (DI)
+
+- Configure the DI container using `inversify`
+- All dependency symbols should be defined in `src/types/symbol-types.ts`
+- Symbol names should match service names
+- Manage container settings centrally in `src/container.ts`
+- Inject dependencies using constructor injection
+- Separate interface and implementation and bind with DI container
+- Design so that mock implementations can be substituted during testing
+
+### Type definition
+
+- Place common type definitions in the `src/types/` directory
+- Define domain-specific types in the same file as the domain object
+- Place external API response types in the same file as the corresponding repository or in a dedicated type definition file
+- Name interfaces in PascalCase, and type aliases in CamelCase
+- Build complex types by combining smaller types
+- Avoid using any types, and use unknown types as needed
+- Prefer the T[] notation over Array<T> for array types
+- Explicitly indicate optional properties using ?
+- Use the readonly modifier for read-only properties
+
+### Code style
+
+- Aim for pure functions and minimize side effects
+- Use early return patterns to reduce nesting
+- Split complex conditional branches into separate helper functions
+- Define constants in UPPER_SNAKE_CASE
+- Always use names for variables and functions that clearly express the intent
+- Use comments to explain the intent and background of business logic
+- Use JSDoc comments to document the purpose, parameters, and return values ​​of functions
+
+## HonoX-specific rules
+
+### Implementation of Islands Architecture
+
+- Implement only interactive components as Islands
+- Islands components can manage stateful states
+- Islands components can use some of the hooks that React also has, such as `useState`
+- Note that the context object (c) cannot be accessed within Islands
+- Pass required data to Island components as properties
+
+### Routing and rendering
+
+- Route handlers are defined in the `createRoute()` function
+- Processes corresponding to HTTP methods are defined with the appropriate export name (GET, POST, PUT, DELETE)
+- Common layouts are Define in `_renderer.tsx`
+- Error pages are defined in `_error.tsx` and 404 pages in `_404.tsx`
+- Middleware is defined in `_middleware.ts` and can be applied to each directory
+- Render functions use `c.render()` and return JSX
+- Routes with dynamic parameters are defined with the naming convention `[paramName].tsx`

@@ -8,22 +8,19 @@
   ],
   "assets": {
     "directory": "./dist"
-  }
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OGP_KV",
+      "id": "ogp_kv_namespace_placeholder"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "OGP_IMAGES",
+      "bucket_name": "ogp-images"
+    }
+  ],
   // "d1_databases": [
   //   {
   //     "binding": "MY_DB",
