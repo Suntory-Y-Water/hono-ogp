@@ -32,3 +32,9 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# ローカル時の読み込みドキュメント
+.cursor/docs/mcp-sdk
+.cursor/docs/download_cloudflare_agents.sh
+.cursor/docs/cloudflare
+.cursor/docs/mcp-example.md
