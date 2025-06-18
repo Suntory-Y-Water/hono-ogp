@@ -17,7 +17,11 @@
   "private": true,
   "dependencies": {
     "hono": "^4.8.0",
-    "honox": "^0.1.42"
+    "honox": "^0.1.42",
+    "satori": "^0.15.2",
+    "svg2png-wasm": "^1.4.1",
+    "wasm-image-optimization": "^1.2.30",
+    "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -26,6 +30,7 @@
     "@hono/vite-build": "^1.6.2",
     "@hono/vite-dev-server": "^0.18.3",
     "@tailwindcss/vite": "^4.1.10",
+    "@types/node": "^24.0.3",
     "tailwindcss": "^4.1.10",
     "vite": "^6.3.5",
     "vitest": "^3.2.4",
