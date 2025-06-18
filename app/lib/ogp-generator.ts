@@ -62,55 +62,19 @@ async function getFontData(): Promise<ArrayBuffer> {
   }
 }
 
-/**
- * OGP画像のJSXテンプレートを生成
- */
-function createOgpTemplate(params: ImageGenerationParams) {
-  const { title, gradient, width = 1200, height = 630 } = params;
-  const gradientStyle = GRADIENT_PRESETS[gradient as GradientType] || GRADIENT_PRESETS['blue-to-purple'];
-
-  return {
-    type: 'div',
-    props: {
-      style: {
-        width: width,
-        height: height,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: gradientStyle,
-        fontFamily: 'Noto Sans JP, sans-serif',
-        color: 'white',
-        padding: '80px 60px',
-        boxSizing: 'border-box',
-      },
-      children: [
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: '72px',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              lineHeight: '1.2',
-              textShadow: '0 4px 8px rgba(0,0,0,0.3)',
-              maxWidth: '100%',
-              wordBreak: 'break-word',
-            },
-            children: title,
-          },
-        },
-      ],
-    },
-  };
-}
+// テンプレート生成は ogp-template.tsx から import
+import { createSimpleOgpTemplate } from './ogp-template';
 
 /**
  * SatoriでSVGを生成
  */
 async function generateSvg(params: ImageGenerationParams): Promise<string> {
-  const template = createOgpTemplate(params);
+  const template = createSimpleOgpTemplate({
+    title: params.title,
+    gradient: params.gradient as GradientType,
+    width: params.width,
+    height: params.height,
+  });
   const fontData = await getFontData();
   
   const svg = await satori(template, {
