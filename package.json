@@ -8,7 +8,11 @@
     "preview": "wrangler dev",
     "deploy": "pnpm run build && wrangler deploy",
     "lint": "biome lint ./app",
-    "lint:fix": "biome lint --write ./app"
+    "lint:fix": "biome lint --write ./app",
+    "typegen": "wrangler types",
+    "test": "vitest",
+    "test:unit": "vitest run --config ./test/vitest.config.ts",
+    "test:it": "vitest run --config ./test-integration/vitest.config.ts"
   },
   "private": true,
   "dependencies": {
@@ -17,12 +21,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@cloudflare/vitest-pool-workers": "^0.8.40",
     "@cloudflare/workers-types": "^4.20250617.0",
     "@hono/vite-build": "^1.6.2",
     "@hono/vite-dev-server": "^0.18.3",
     "@tailwindcss/vite": "^4.1.10",
     "tailwindcss": "^4.1.10",
     "vite": "^6.3.5",
+    "vitest": "^3.2.4",
     "wrangler": "^4.20.1"
   }
 }
