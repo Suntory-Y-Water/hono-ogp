@@ -16,16 +16,18 @@
   },
   "private": true,
   "dependencies": {
+    "@hono/zod-validator": "^0.7.0",
     "hono": "^4.8.0",
     "honox": "^0.1.42",
     "satori": "^0.15.2",
     "svg2png-wasm": "^1.4.1",
     "wasm-image-optimization": "^1.2.30",
-    "yoga-wasm-web": "^0.3.3"
+    "yoga-wasm-web": "^0.3.3",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@cloudflare/vitest-pool-workers": "^0.8.40",
+    "@cloudflare/vitest-pool-workers": "^0.8.41",
     "@cloudflare/workers-types": "^4.20250617.0",
     "@hono/vite-build": "^1.6.2",
     "@hono/vite-dev-server": "^0.18.3",
@@ -33,7 +35,8 @@
     "@types/node": "^24.0.3",
     "tailwindcss": "^4.1.10",
     "vite": "^6.3.5",
-    "vitest": "^3.2.4",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "~3.2.0",
     "wrangler": "^4.20.1"
   }
 }

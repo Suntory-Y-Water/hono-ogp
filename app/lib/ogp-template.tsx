@@ -190,6 +190,7 @@ export function createOgpTemplate(props: OgpTemplateProps) {
 
 /**
  * シンプルなOGPテンプレート（Phase 1用）
+ * サンプル通りの「グラデーション背景 + 白いカードコンテナ」構造
  */
 export function createSimpleOgpTemplate(props: Pick<OgpTemplateProps, 'title' | 'gradient' | 'width' | 'height'>) {
   const { title, gradient, width = 1200, height = 630 } = props;
@@ -199,67 +200,78 @@ export function createSimpleOgpTemplate(props: Pick<OgpTemplateProps, 'title' | 
     type: 'div',
     props: {
       style: {
-        width: width,
-        height: height,
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
+        padding: 48,
+        height: height,
+        width: width,
         background: gradientStyle,
         fontFamily: 'Noto Sans JP, system-ui, sans-serif',
-        color: 'white',
-        padding: '80px 60px',
-        boxSizing: 'border-box',
-        position: 'relative',
       },
       children: [
-        // 背景装飾
         {
           type: 'div',
           props: {
             style: {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(1px)',
+              height: '100%',
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              flexDirection: 'column',
+              backgroundColor: 'white',
+              color: '#000000d1',
+              padding: 48,
+              borderRadius: 12,
             },
-          },
-        },
-        // メインタイトル
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: Math.min(72, Math.max(36, 1000 / title.length)),
-              fontWeight: 800,
-              textAlign: 'center',
-              lineHeight: 1.1,
-              textShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              maxWidth: '90%',
-              wordBreak: 'break-word',
-              zIndex: 1,
-              letterSpacing: '-0.02em',
-            },
-            children: title,
-          },
-        },
-        // サブタイトル
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: 28,
-              fontWeight: 500,
-              textAlign: 'center',
-              marginTop: 32,
-              opacity: 0.9,
-              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              zIndex: 1,
-            },
-            children: 'OGP Image Generator',
+            children: [
+              // メインコンテンツエリア
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                  },
+                  children: [
+                    // タイトル
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          fontSize: 64,
+                          maxWidth: 1000,
+                          fontWeight: 600,
+                        },
+                        children: title,
+                      },
+                    },
+                  ],
+                },
+              },
+              // フッターエリア（著者情報）
+              {
+                type: 'div',
+                props: {
+                  style: {
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  },
+                  children: [
+                    {
+                      type: 'div',
+                      props: {
+                        style: {
+                          fontSize: 48,
+                          fontWeight: 400,
+                          display: 'flex',
+                          alignItems: 'center',
+                        },
+                        children: 'OGP Generator',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
           },
         },
       ],

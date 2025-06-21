@@ -3,9 +3,7 @@
   "name": "hono-ogp",
   "main": "./dist/index.js",
   "compatibility_date": "2025-06-17",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist"
   },
@@ -20,7 +18,7 @@
       "binding": "OGP_IMAGES",
       "bucket_name": "ogp-images"
     }
-  ],
+  ]
   // "d1_databases": [
   //   {
   //     "binding": "MY_DB",

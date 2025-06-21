@@ -55,9 +55,8 @@ app/
     │   │   ├── [id].tsx      # OGP画像配信エンドポイント
     │   │   └── generate.tsx  # OGP画像生成API
     │   └── ...
-    ├── ogp/
-    │   ├── index.tsx         # OGP作成フォーム画面
-    │   └── result.tsx        # 生成結果表示画面
+    ├── index.tsx         # OGP作成フォーム画面
+    ├── result.tsx        # 生成結果表示画面
     └── ...
 ```
 
