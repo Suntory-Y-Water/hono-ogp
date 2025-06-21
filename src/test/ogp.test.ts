@@ -5,11 +5,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  GRADIENT_PRESETS,
   generateOGPImageSvg,
   generateOGPImagePng,
   type OGPImageOptions,
-} from '../lib/ogp';
+} from '../lib/ogp-server';
+import { GRADIENT_PRESETS } from '../lib/constants';
 
 // サードパーティライブラリのモック
 vi.mock('satori', () => ({

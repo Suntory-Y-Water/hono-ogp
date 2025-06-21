@@ -5,30 +5,19 @@
 
 'use server';
 
-import {
-  generateOGPImagePng,
-  validateOGPOptions,
-  GRADIENT_PRESETS,
-} from '@/lib/ogp';
+import { generateOGPImagePng, validateOGPOptions } from '@/lib/ogp-server';
+import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
 import { uploadOGPImage, saveOGPMetadata } from '@/lib/cloudflare';
-import type { GradientPresetName } from '@/lib/ogp';
 
 /**
  * OGP画像生成アクションの結果型
  */
-export interface OGPGenerationResult {
+export type OGPGenerationResult = {
   success: boolean;
   id?: string;
   url?: string;
   error?: string;
-}
-
-/**
- * 一意のOGP IDを生成
- */
-function generateOGPId(): string {
-  return crypto.randomUUID();
-}
+};
 
 /**
  * OGP画像生成Server Action
@@ -76,7 +65,7 @@ export async function generateOGPAction(
     const imageBuffer = await generateOGPImagePng(ogpOptions);
 
     // 一意のIDを生成
-    const id = generateOGPId();
+    const id = crypto.randomUUID();
 
     // R2にアップロード
     const key = await uploadOGPImage({

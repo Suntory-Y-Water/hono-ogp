@@ -15,9 +15,9 @@ export interface OGPTemplateProps {
  * Phase 1 MVP用OGP画像テンプレート
  * タイトルとグラデーション背景のみのシンプルなデザイン
  */
-export function OGPTemplate({ 
-  title, 
-  gradient = { from: '#667eea', to: '#764ba2' }
+export function OGPTemplate({
+  title,
+  gradient = { from: '#667eea', to: '#764ba2' },
 }: OGPTemplateProps) {
   const backgroundStyle = `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
 
@@ -38,6 +38,7 @@ export function OGPTemplate({
         style={{
           fontSize: '48px',
           fontWeight: 'bold',
+          fontFamily: 'Noto Sans JP',
           color: 'white',
           textAlign: 'center',
           lineHeight: '1.2',
@@ -54,7 +55,9 @@ export function OGPTemplate({
 /**
  * エラー時のフォールバック用テンプレート
  */
-export function OGPErrorTemplate({ siteName = 'OGP画像生成サービス' }: { siteName?: string }) {
+export function OGPErrorTemplate({
+  siteName = 'OGP画像生成サービス',
+}: { siteName?: string }) {
   return (
     <div
       style={{
