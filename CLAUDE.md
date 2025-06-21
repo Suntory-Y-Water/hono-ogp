@@ -26,7 +26,7 @@
 - フレームワーク: Next.js(Server Components)
 - ランタイム: Cloudflare Workers
 - データベース: Cloudflare KV (メタデータ), Cloudflare R2 (画像ファイル)
-- 画像生成: Satori, svg2png-wasm, wasm-image-optimization
+- 画像生成: Satori, svg2png-wasm
 
 ### 開発・インフラ環境
 
@@ -184,18 +184,30 @@ export function distance(a: Point, b: Point): number {
 
 ### テスト
 
-- 各機能に対しては必ずユニットテストを実装
-- コードを追加で修正したとき、 `pnpm test` がパスすることを常に確認する。
+- **ビジネスロジックを含む関数のみ**ユニットテストを実装
+- **実際の関数の動作**をテストし、意味のないテストは禁止
+- **外部依存関係は適切にモック**して、関数の入力・出力・副作用を検証する
+- コードを追加で修正したとき、 `pnpm test` がパスすることを常に確認する
 
+#### 良いテストの例
 ```ts
-function add(a: number, b: number) {
-  return a + b;
-}
-test("1+2=3", () => {
-  expect(add(1, 2)).toBe(3);
+// モックを使用した外部依存関係のテスト
+vi.mock('@opennextjs/cloudflare', () => ({
+  getCloudflareContext: () => ({ env: mockEnv }),
+}));
+
+test("OGPメタデータを正常に保存できる", async () => {
+  const testMetadata = { id: 'test', title: 'Test Title' };
+  
+  await saveOGPMetadata(testMetadata);
+  
+  expect(mockEnv.OGP_METADATA_KV.put).toHaveBeenCalledWith(
+    'ogp:test',
+    expect.stringContaining('"id":"test"'),
+    { expirationTtl: 31536000 }
+  );
 });
 ```
-
 - 規約: 
   - ハードコードは絶対にしないでください。環境変数や設定ファイルを使用して、柔軟に対応できるようにします。
   - ビジネス上、後から修正を行う可能性がある処理のみ分離する。何でもかんでも単一責任の法則に従って分離すればよいわけではない。

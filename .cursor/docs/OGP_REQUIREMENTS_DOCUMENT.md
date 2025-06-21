@@ -165,9 +165,7 @@
 {
   "dependencies": {
     "satori": "^0.10.0",
-    "yoga-wasm-web": "^0.3.0", 
     "svg2png-wasm": "^0.4.0",
-    "wasm-image-optimization": "^1.0.0"
   }
 }
 ```
