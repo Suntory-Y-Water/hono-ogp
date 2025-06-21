@@ -7,24 +7,23 @@
 - プロジェクト名: OGP画像生成サービス
 - プロジェクトタイプ: Webアプリケーション（動的OGP画像生成サービス）
 - 主要機能:
-  - OGP画像作成フォーム（タイトル、グラデーション選択など）
+  - OGP画像作成フォーム（タイトル、背景のグラデーション選択など）
   - リアルタイムプレビュー機能
   - 生成結果の表示とOGP用URLの発行
   - 画像配信APIエンドポイント
-  - （Phase 2）アイコン画像、著者名表示への対応
 
 ## 技術スタック
 
 ### フロントエンド
 
-- フレームワーク/ライブラリ: HonoX (Islands Architecture)
+- フレームワーク/ライブラリ: Next.
 - スタイリング: Tailwind CSS 4.0
 - クライアントサイド: Islands Architectureによる部分的なハイドレーション
 
 ### バックエンド
 
-- 言語: TypeScript
-- フレームワーク: Hono
+- 言語: TypeScript(Next.js)
+- フレームワーク: Next.js(Server Components)
 - ランタイム: Cloudflare Workers
 - データベース: Cloudflare KV (メタデータ), Cloudflare R2 (画像ファイル)
 - 画像生成: Satori, svg2png-wasm, wasm-image-optimization
@@ -33,33 +32,13 @@
 
 - パッケージマネージャー: pnpm
 - テストフレームワーク: Vitest 3.2.4
-- リンター: biome 1.9.4
+- リンター: biome 2.0.0
 - CI/CD: GitHub Actions
 - ホスティング: Cloudflare
 
 ## プロジェクト構造
 
-HonoXのfile-based routingに基づいた構成です。
-
-```
-app/
-├── islands/                  # クライアントサイドで動作するインタラクティブなコンポーネント
-│   └── ogp-form.tsx          # OGP設定フォーム
-├── lib/                      # サーバーサイドのライブラリ・ユーティリティ
-│   ├── cloudflare.ts         # R2/KV統合操作ライブラリ
-│   ├── ogp-generator.ts      # Satoriを使った画像生成ロジック
-│   └── ogp-template.tsx      # 画像デザインの元となるJSXテンプレート
-└── routes/                   # ページのルーティングとAPIエンドポイント
-    ├── api/
-    │   ├── ogp/
-    │   │   ├── [id].tsx      # OGP画像配信エンドポイント
-    │   │   └── generate.tsx  # OGP画像生成API
-    │   └── ...
-    ├── ogp/
-    │   ├── index.tsx         # OGP作成フォーム画面
-    │   └── result.tsx        # 生成結果表示画面
-    └── ...
-```
+Next.jsのfile-based routingに基づいた構成です。
 
 ## データベース設計
 
@@ -68,11 +47,6 @@ Cloudflareのストレージサービスを利用してデータを管理しま�
 - モデル構成:
   - `KV (キー: ogp:${id})`: 画像メタデータを格納。値には画像ID、R2のURL、タイトルやグラデーションなどの生成パラメータ、作成日時を含む。TTLは1年。
   - `R2 (バケット: ogp-images/images)`: 生成されたPNG画像ファイルを格納。ファイル名は`${id}_${Date.now()}_${titleHash}.png`形式。
-- 環境別設定 (TODO):
-  - 開発:
-  - 本番:
-
-## 開発ワークフロー (TODO)
 
 ### セットアップ
 
@@ -99,13 +73,7 @@ pnpm build
 # 型定義ファイル作成
 pnpm typegen
 
-# 単体テスト
-pnpm test:unit
-
-# 結合テスト
-pnpm test:it
-
-# オール
+# テスト
 pnpm test
 
 ```
@@ -115,24 +83,18 @@ pnpm test
 このプロジェクトでは、Vitestと`@cloudflare/vitest-pool-workers`を組み合わせて、Cloudflare Workersの本番環境を模した統合テストを実施します。APIエンドポイントやデータベース連携など、アプリケーション全体の動作を保証することを目的とします。
 
 - ファイル配置:
-  - すべてのテストファイルは、プロジェクトルートの `test/` ディレクトリ内に配置します。
+  - すべてのテストファイルは、プロジェクトルートの `src/test/` ディレクトリ内に配置します。
   - ファイル名は `[テスト対象の機能].test.ts` のように、末尾を `.test.ts` とします。
 
 - テスト対象:
   - APIエンドポイント: Honoのアプリケーションインスタンス (`app/server.ts`) にリクエストを送り、ステータスコードやレスポンスを検証します。
-  - データベース関数: `app/db.ts`内の関数が、D1データベースを正しく操作できることを検証します。
-  - ユーティリティ関数: `app/utils.ts`などの純粋な補助関数をテストします。
+  - ServerComponentで使用する関数が正常に動作することを確認します。
+  - KV関数: `app/db.ts`内の関数が、KVを正しく操作できることを検証します。
+  - ユーティリティ関数などの純粋な補助関数をテストします。
 
 - 記述ルール:
   - テストはVitestを使用し、`describe`/`it`構文で記述します。
   - `describe`ブロックは、テストの対象や状況を日本語で分かりやすく記述します。
-  - `test/vitest.setup.ts`の設定により、各テストケース (`it`) の実行前にデータベースが自動的にリセットされます。これにより、各テストは常にクリーンな状態で実行されます。
-  - テスト内でD1データベースなどのCloudflareリソースを操作するには、`import { env } from 'cloudflare:test';` を使用します。
-  - エンドポイントにアクセスするときは`import { SELF, env } from 'cloudflare:test';`して、`const response = await SELF.fetch('http://localhost/');`でアクセスします。
-
-- モック:
-  - `@cloudflare/vitest-pool-workers`がCloudflare環境をシミュレートするため、D1データベースやKVなどのバインディングをモックする必要はありません。
-  - 外部のサードパーティAPIなど、制御下にない依存関係のみ、`vi.mock`を使用してモックします。
 
 ### テストコードは変更しない
 
@@ -182,20 +144,6 @@ pnpm deploy
 
 - `wrangler.jsonc`: Cloudflare Workersの設定ファイル。R2バケットやKV名前空間のバインディングを定義。
 - `package.json`: プロジェクトの依存関係を管理。`satori`, `svg2png-wasm`などを追加。
-
-## トラブルシューティング
-
-Cloudflare Workersの制限に対応するための考慮事項です。
-
-- よくある問題:
-  - CPU時間制限 (10ms): 画像生成処理がタイムアウトする。
-      - 対策: Satoriで利用するHTML/CSSテンプレートを極力軽量化する。使用するフォントを限定し、事前に読み込んでおく。画像処理を最小限に抑える。
-  - メモリ制限 (128MB): 大きな画像を扱う際にメモリを使い切る。
-      - 対策: アップロード・生成する画像のサイズに上限（例: 2MB）を設ける。可能な箇所でストリーミング処理を導入する。
-- キャッシュ戦略:
-  - 一度生成した画像はR2に保存し、メタデータをKVに格納する。
-  - 次回以降同じリクエストがあった場合は、KVのメタデータを参照し、R2から直接画像を返すか、CDNキャッシュを利用する。
-  - CDNのキャッシュTTLは長期間（例: 1年）に設定し、エッジでのキャッシュヒット率を高める。
 
 ## CI/CD
 
@@ -257,9 +205,43 @@ test("1+2=3", () => {
   - すべての処理は関数ベースで作成し、クラスの定義は禁止する。
   - 引数が2個以上ある関数はオブジェクトで引数を定義する
 
-## 参考リンク
+## Next.js特有の規約
+- データフェッチ用のAPIは作成しないでください。サーバーコンポーネントでServer関数でデータを取得する
+- `クライアントサイドでのユーザーデータ操作`は`ServerActions`を使用する
+- キャッシュは使用しないで常に`no-store(キャッシュ無効化)`で実装する
+- 画像は`next/image`コンポーネントを使用
+- `next/script`を使用して外部スクリプトを最適化
+- useSearchParamsや動的ルーティングの/blog/[id]等のpramas受け取る際は、async/awaitで受け取る
+- `useEffect()`でデータフェッチを控える
 
-- [Hono Documentation](https://hono.dev/)
-- [Satori - Vercel](https://vercel.com/docs/functions/edge-functions/og-image-generation/og-image-examples#using-satori)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-- [Vitest Documentation](https://vitest.dev/)
+## UI/UXの規約
+- shadcn/ui をベースとしたコンポーネントの使用
+- コンポーネントのカスタマイズは最小限に抑える
+
+```typescript
+// ✅ 良い例：shadcn/uiコンポーネントをそのまま使用
+import { Button } from "@/components/ui/button";
+
+// ❌ 悪い例：不必要なカスタマイズ
+const CustomButton = styled(Button)`
+  // 独自のスタイリング
+`;
+```
+- モバイルファーストアプローチ
+- Tailwind のブレークポイントを使用
+  - sm: 640px
+  - md: 768px
+  - lg: 1024px
+  - xl: 1280px
+  - 2xl: 1536px
+- `tailwindcss/animation`の使用
+- 過度なアニメーションを避ける
+- 必要な場合のみ`framer-motion`を使用
+- shadcn/ui のフォームコンポーネントを使用
+- バリデーションメッセージは明確に表示
+- 入力補助の実装（オートコンプリートなど）
+
+## 重要な依存関係
+
+`@opennextjs/cloudflare`は2025年6月21日時点でとても新しい依存関係です。
+ドキュメントは全て`.cursor/docs/cloudflare/opennext-docs/opennext`配下にあるので、実装方法が不明な場合はこのドキュメントを随時確認する
