@@ -5,67 +5,47 @@
 
 'use server';
 
+import { redirect } from 'next/navigation';
 import { generateOGPImagePng, validateOGPOptions } from '@/lib/ogp-server';
 import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
 import { uploadOGPImage, saveOGPMetadata } from '@/lib/cloudflare';
 
 /**
- * OGP画像生成アクションの結果型
- */
-export type OGPGenerationResult = {
-  success: boolean;
-  id?: string;
-  url?: string;
-  error?: string;
-};
-
-/**
  * OGP画像生成Server Action
  * フォームからデータを受け取り、画像生成・アップロード・メタデータ保存を実行
  */
-export async function generateOGPAction(
-  formData: FormData,
-): Promise<OGPGenerationResult> {
+export async function generateOGPAction(formData: FormData): Promise<void> {
+  const title = formData.get('title') as string;
+  const gradientPreset = formData.get('gradient') as GradientPresetName;
+
+  // バリデーション
+  if (!title || title.trim().length === 0) {
+    throw new Error('タイトルは必須です');
+  }
+
+  if (!gradientPreset || !GRADIENT_PRESETS[gradientPreset]) {
+    throw new Error('有効なグラデーションを選択してください');
+  }
+
+  const gradient = GRADIENT_PRESETS[gradientPreset];
+  const ogpOptions = {
+    title: title.trim(),
+    gradient,
+    width: 1200,
+    height: 630,
+  };
+
+  // 追加バリデーション
+  if (!validateOGPOptions(ogpOptions)) {
+    throw new Error('OGPオプションが無効です');
+  }
+
+  // 一意のIDを生成（try/catchの外で定義）
+  const id = crypto.randomUUID();
+
   try {
-    const title = formData.get('title') as string;
-    const gradientPreset = formData.get('gradient') as GradientPresetName;
-
-    // バリデーション
-    if (!title || title.trim().length === 0) {
-      return {
-        success: false,
-        error: 'タイトルは必須です',
-      };
-    }
-
-    if (!gradientPreset || !GRADIENT_PRESETS[gradientPreset]) {
-      return {
-        success: false,
-        error: '有効なグラデーションを選択してください',
-      };
-    }
-
-    const gradient = GRADIENT_PRESETS[gradientPreset];
-    const ogpOptions = {
-      title: title.trim(),
-      gradient,
-      width: 1200,
-      height: 630,
-    };
-
-    // 追加バリデーション
-    if (!validateOGPOptions(ogpOptions)) {
-      return {
-        success: false,
-        error: 'OGPオプションが無効です',
-      };
-    }
-
     // OGP画像生成
     const imageBuffer = await generateOGPImagePng(ogpOptions);
-
-    // 一意のIDを生成
-    const id = crypto.randomUUID();
 
     // R2にアップロード
     const key = await uploadOGPImage({
@@ -82,17 +62,11 @@ export async function generateOGPAction(
       gradient,
       url: `/api/ogp/${id}`,
     });
-
-    return {
-      success: true,
-      id,
-      url: `/result?id=${id}`,
-    };
   } catch (error) {
     console.error('OGP generation action failed:', error);
-    return {
-      success: false,
-      error: 'OGP画像の生成に失敗しました',
-    };
+    throw new Error('OGP画像の生成に失敗しました');
   }
+
+  // Server Actionでのredirectは、try/catchブロックの外で呼び出す
+  redirect(`/result?id=${id}`);
 }

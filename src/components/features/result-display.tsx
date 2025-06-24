@@ -3,34 +3,21 @@
  * 生成結果、URLコピー、メタデータ表示機能
  */
 
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { CopyButton } from './copy-button';
 import type { OGPMetadata } from '@/lib/cloudflare';
 
-interface ResultDisplayProps {
+type ResultDisplayProps = {
   metadata: OGPMetadata;
   endPoint: string;
-}
+};
 
 export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
-  const [copyStatus, setCopyStatus] = useState<{ [key: string]: boolean }>({});
-
-  const handleCopy = async (text: string, key: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopyStatus({ ...copyStatus, [key]: true });
-    setTimeout(() => {
-      setCopyStatus({ ...copyStatus, [key]: false });
-    }, 2000);
-  };
-
   const imageUrl = `${endPoint}/api/ogp/${metadata.id}`;
   const ogpMetaTags = `<meta property="og:image" content="${imageUrl}" />
 <meta property="og:image:width" content="1200" />
@@ -46,9 +33,6 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
         <CardHeader>
           <CardTitle className='flex items-center justify-between'>
             生成されたOGP画像
-            <Badge variant='secondary'>
-              {new Date(metadata.createdAt).toLocaleDateString('ja-JP')}
-            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -80,13 +64,9 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
                 rows={2}
                 className='flex-1'
               />
-              <Button
-                onClick={() => handleCopy(imageUrl, 'imageUrl')}
-                variant='outline'
-                className='self-start'
-              >
-                {copyStatus.imageUrl ? 'コピー済み' : 'コピー'}
-              </Button>
+              <CopyButton text={imageUrl} className='cursor-pointer'>
+                コピー
+              </CopyButton>
             </div>
           </div>
         </CardContent>
@@ -110,13 +90,9 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
                 rows={6}
                 className='flex-1 font-mono text-sm'
               />
-              <Button
-                onClick={() => handleCopy(ogpMetaTags, 'metaTags')}
-                variant='outline'
-                className='self-start'
-              >
-                {copyStatus.metaTags ? 'コピー済み' : 'コピー'}
-              </Button>
+              <CopyButton text={ogpMetaTags} className='cursor-pointer'>
+                コピー
+              </CopyButton>
             </div>
           </div>
         </CardContent>
@@ -125,15 +101,15 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
       {/* アクション */}
       <div className='flex justify-center space-x-4'>
         <Link href='/'>
-          <Button size='lg'>新しいOGP画像を作成</Button>
+          <Button size='lg' className='cursor-pointer'>
+            新しいOGP画像を作成
+          </Button>
         </Link>
-        <Button
-          variant='outline'
-          size='lg'
-          onClick={() => window.open(imageUrl, '_blank')}
-        >
-          画像を新しいタブで開く
-        </Button>
+        <a href={imageUrl} target='_blank' rel='noopener noreferrer'>
+          <Button variant='outline' size='lg' className='cursor-pointer'>
+            画像を新しいタブで開く
+          </Button>
+        </a>
       </div>
     </div>
   );

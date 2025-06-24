@@ -11,9 +11,9 @@ import { getOGPMetadata, OGPMetadata } from '@/lib/cloudflare';
 import { ResultDisplay } from '@/components/features/result-display';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-interface ResultPageProps {
+type ResultPageProps = {
   searchParams: Promise<{ id?: string }>;
-}
+};
 
 export default async function ResultPage({ searchParams }: ResultPageProps) {
   const { id } = await searchParams;

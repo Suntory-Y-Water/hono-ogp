@@ -38,14 +38,21 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+type GenerateResult = {
+  success: boolean;
+  id?: string;
+  url?: string;
+  error?: string;
+};
+
+type GradientOption = {
+  value: GradientPresetName;
+  label: string;
+};
+
 export function OGPCreationForm() {
   const [isPending, startTransition] = useTransition();
-  const [result, setResult] = useState<{
-    success: boolean;
-    id?: string;
-    url?: string;
-    error?: string;
-  } | null>(null);
+  const [result, setResult] = useState<GenerateResult | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -57,21 +64,26 @@ export function OGPCreationForm() {
 
   const handleSubmit = form.handleSubmit((data) => {
     startTransition(async () => {
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('gradient', data.gradient);
+      try {
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('gradient', data.gradient);
 
-      const response = await generateOGPAction(formData);
-      setResult(response);
-
-      if (response.success && response.url) {
-        // 結果画面にリダイレクト
-        window.location.href = response.url;
+        await generateOGPAction(formData);
+        // redirect()が呼ばれるため、ここには到達しない
+      } catch (error) {
+        setResult({
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'OGP画像の生成に失敗しました',
+        });
       }
     });
   });
 
-  const gradientOptions: { value: GradientPresetName; label: string }[] = [
+  const gradientOptions: GradientOption[] = [
     { value: 'sunset', label: 'サンセット' },
     { value: 'ocean', label: 'オーシャン' },
     { value: 'forest', label: 'フォレスト' },
