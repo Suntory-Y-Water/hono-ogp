@@ -1,6 +1,6 @@
 import localFont from 'next/font/local';
 
-export const fontPlemolJP35Console = localFont({
+export const fontNotoSansJp = localFont({
   src: './NotoSansJP-Regular.ttf',
   display: 'swap',
 });

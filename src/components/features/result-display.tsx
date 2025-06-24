@@ -7,12 +7,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { OGPPreview } from './ogp-preview';
 import type { OGPMetadata } from '@/lib/cloudflare';
 
 interface ResultDisplayProps {
@@ -52,11 +52,14 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <OGPPreview title={metadata.title} gradient={metadata.gradient} />
-          <div className='mt-4 text-center'>
-            <p className='text-lg font-semibold text-gray-800'>
-              {metadata.title}
-            </p>
+          <div className='flex justify-center'>
+            <Image
+              src={imageUrl}
+              alt={`OGP画像: ${metadata.title}`}
+              width={1200}
+              height={630}
+              className='max-w-full h-auto border rounded-lg shadow-sm'
+            />
           </div>
         </CardContent>
       </Card>
@@ -116,45 +119,6 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* メタデータ情報 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>詳細情報</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <dt className='font-semibold text-gray-700'>画像ID</dt>
-              <dd className='text-gray-600'>{metadata.id}</dd>
-            </div>
-            <div>
-              <dt className='font-semibold text-gray-700'>作成日時</dt>
-              <dd className='text-gray-600'>
-                {new Date(metadata.createdAt).toLocaleString('ja-JP')}
-              </dd>
-            </div>
-            <div>
-              <dt className='font-semibold text-gray-700'>グラデーション</dt>
-              <dd className='flex items-center space-x-2'>
-                <div
-                  className='w-6 h-6 rounded-full'
-                  style={{
-                    background: `linear-gradient(135deg, ${metadata.gradient.from}, ${metadata.gradient.to})`,
-                  }}
-                />
-                <span className='text-gray-600'>
-                  {metadata.gradient.from} → {metadata.gradient.to}
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt className='font-semibold text-gray-700'>画像サイズ</dt>
-              <dd className='text-gray-600'>1200 × 630 px</dd>
-            </div>
-          </dl>
         </CardContent>
       </Card>
 
