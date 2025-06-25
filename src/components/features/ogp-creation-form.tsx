@@ -64,6 +64,9 @@ export function OGPCreationForm() {
 
   const handleSubmit = form.handleSubmit((data) => {
     startTransition(async () => {
+      // エラー状態をリセット
+      setResult(null);
+
       try {
         const formData = new FormData();
         formData.append('title', data.title);
@@ -72,6 +75,17 @@ export function OGPCreationForm() {
         await generateOGPAction(formData);
         // redirect()が呼ばれるため、ここには到達しない
       } catch (error) {
+        // Next.jsのRedirectErrorはエラー表示しない
+        if (
+          error &&
+          typeof error === 'object' &&
+          'digest' in error &&
+          typeof error.digest === 'string' &&
+          error.digest.startsWith('NEXT_REDIRECT')
+        ) {
+          return;
+        }
+
         setResult({
           success: false,
           error:
