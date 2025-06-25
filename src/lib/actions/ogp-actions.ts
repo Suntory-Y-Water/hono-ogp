@@ -6,9 +6,8 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { generateOGPImagePng, validateOGPOptions } from '@/lib/ogp-server';
 import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
-import { uploadOGPImage, saveOGPMetadata } from '@/lib/cloudflare';
+import { saveOGPMetadata } from '@/lib/cloudflare';
 
 /**
  * OGP画像生成Server Action
@@ -28,37 +27,16 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
   }
 
   const gradient = GRADIENT_PRESETS[gradientPreset];
-  const ogpOptions = {
-    title: title.trim(),
-    gradient,
-    width: 1200,
-    height: 630,
-  };
 
-  // 追加バリデーション
-  if (!validateOGPOptions(ogpOptions)) {
-    throw new Error('OGPオプションが無効です');
-  }
-
-  // 一意のIDを生成（try/catchの外で定義）
+  // 一意のIDを生成
   const id = crypto.randomUUID();
 
   try {
-    // OGP画像生成
-    const imageBuffer = await generateOGPImagePng(ogpOptions);
-
-    // R2にアップロード
-    const key = await uploadOGPImage({
-      imageData: imageBuffer,
-      id,
-      title: ogpOptions.title,
-    });
-
-    // KVにメタデータ保存
+    // KVにメタデータ保存（ImageResponseで動的生成するため画像ファイルは保存しない）
     await saveOGPMetadata({
       id,
-      key,
-      title: ogpOptions.title,
+      key: `ogp-${id}`, // R2は使わないがキーは必要
+      title: title.trim(),
       gradient,
       url: `/api/ogp/${id}`,
     });
