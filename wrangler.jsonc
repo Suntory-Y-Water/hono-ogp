@@ -15,17 +15,10 @@
   "observability": {
     "enabled": true
   },
-  "r2_buckets": [
-    {
-      "binding": "OGP_IMAGES_BUCKET",
-      "bucket_name": "ogp-images"
-    }
-  ],
   "kv_namespaces": [
     {
       "binding": "OGP_METADATA_KV",
-      // TODO: ここにKVのIDを入れる
-      "id": "ogp-metadata"
+      "id": "f8370fc699ea4f4eba214c5c85e74f5b"
     }
   ]
   /**

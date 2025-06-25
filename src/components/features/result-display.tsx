@@ -4,7 +4,6 @@
  */
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,7 +36,7 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
         </CardHeader>
         <CardContent>
           <div className='flex justify-center'>
-            <Image
+            <img
               src={imageUrl}
               alt={`OGP画像: ${metadata.title}`}
               width={1200}
