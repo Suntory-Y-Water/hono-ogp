@@ -1,299 +1,285 @@
 /**
- * OGP画像生成Server Actionsテスト
- * ビジネスロジック（バリデーション、フォームデータ処理、統合処理）に焦点を当てたテスト
+ * OGP Actions テスト
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateOGPAction } from '../lib/actions/ogp-actions';
+import { saveOGPMetadata } from '../lib/cloudflare';
+import { redirect } from 'next/navigation';
 
-// 依存ライブラリのモック
-vi.mock('@/lib/ogp-server', () => ({
-  generateOGPImagePng: vi.fn(),
-  validateOGPOptions: vi.fn(),
-}));
-
-vi.mock('@/lib/constants', () => ({
-  GRADIENT_PRESETS: {
-    sunset: { from: '#ff7e5f', to: '#feb47b' },
-    ocean: { from: '#667eea', to: '#764ba2' },
-    forest: { from: '#11998e', to: '#38ef7d' },
-    purple: { from: '#8360c3', to: '#2ebf91' },
-    fire: { from: '#ff416c', to: '#ff4b2b' },
-  },
-}));
-
-vi.mock('@/lib/cloudflare', () => ({
-  uploadOGPImage: vi.fn(),
+// モック設定
+vi.mock('../lib/cloudflare', () => ({
   saveOGPMetadata: vi.fn(),
 }));
 
-// crypto.randomUUIDのモック
-const mockRandomUUID = vi.fn();
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
+}));
+
+// crypto.randomUUID のモック
+const mockUUID = 'test-uuid-123';
 Object.defineProperty(global, 'crypto', {
   value: {
-    randomUUID: mockRandomUUID,
+    randomUUID: vi.fn(() => mockUUID),
   },
-  writable: true,
 });
 
 describe('generateOGPAction', () => {
-  let mockGenerateOGPImagePng: any;
-  let mockValidateOGPOptions: any;
-  let mockUploadOGPImage: any;
-  let mockSaveOGPMetadata: any;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-
-    // モックの設定
-    mockGenerateOGPImagePng = vi.mocked(
-      (await import('@/lib/ogp-server')).generateOGPImagePng,
-    );
-    mockValidateOGPOptions = vi.mocked(
-      (await import('@/lib/ogp-server')).validateOGPOptions,
-    );
-    mockUploadOGPImage = vi.mocked(
-      (await import('@/lib/cloudflare')).uploadOGPImage,
-    );
-    mockSaveOGPMetadata = vi.mocked(
-      (await import('@/lib/cloudflare')).saveOGPMetadata,
-    );
-
-    // デフォルトの成功モック
-    mockValidateOGPOptions.mockReturnValue(true);
-    mockGenerateOGPImagePng.mockResolvedValue(
-      new Uint8Array([137, 80, 78, 71]),
-    );
-    mockUploadOGPImage.mockResolvedValue('test-key-123.png');
-    mockSaveOGPMetadata.mockResolvedValue(undefined);
-    mockRandomUUID.mockReturnValue('test-uuid-12345');
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  describe('正常なケース', () => {
-    it('有効なフォームデータで成功レスポンスを返す', async () => {
+  describe('正常系', () => {
+    it('有効なタイトルとグラデーションで成功する', async () => {
+      // Given: 有効なフォームデータ
       const formData = new FormData();
-      formData.append('title', 'テストタイトル');
+      formData.append('title', 'Test Title');
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
+      // When: アクションを実行
+      await generateOGPAction(formData);
 
-      expect(result).toEqual({
-        success: true,
-        id: 'test-uuid-12345',
-        url: '/result?id=test-uuid-12345',
+      // Then: 期待される処理が実行される
+      expect(saveOGPMetadata).toHaveBeenCalledWith({
+        id: mockUUID,
+        key: `ogp-${mockUUID}`,
+        title: 'Test Title',
+        gradient: { from: '#ff7e5f', to: '#feb47b' },
+        url: `/api/ogp/${mockUUID}`,
       });
+      expect(redirect).toHaveBeenCalledWith(`/result?id=${mockUUID}`);
     });
 
-    it('タイトルの前後の空白を適切にトリムする', async () => {
+    it('タイトルの前後空白を正しく処理する', async () => {
+      // Given: 前後に空白があるタイトル
       const formData = new FormData();
-      formData.append('title', '  前後に空白があるタイトル  ');
+      formData.append('title', '  Trimmed Title  ');
       formData.append('gradient', 'ocean');
 
-      const result = await generateOGPAction(formData);
+      // When: アクションを実行
+      await generateOGPAction(formData);
 
-      expect(result.success).toBe(true);
-      expect(mockGenerateOGPImagePng).toHaveBeenCalledWith(
+      // Then: 空白がトリムされて保存される
+      expect(saveOGPMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: '前後に空白があるタイトル',
+          title: 'Trimmed Title',
         }),
       );
     });
 
-    it('異なるグラデーションプリセットで動作する', async () => {
-      const formData = new FormData();
-      formData.append('title', 'プリセットテスト');
-      formData.append('gradient', 'forest');
+    it('すべてのグラデーションプリセットが正しく処理される', async () => {
+      const presets = [
+        { name: 'sunset', expected: { from: '#ff7e5f', to: '#feb47b' } },
+        { name: 'ocean', expected: { from: '#667eea', to: '#764ba2' } },
+        { name: 'forest', expected: { from: '#11998e', to: '#38ef7d' } },
+        { name: 'purple', expected: { from: '#8360c3', to: '#2ebf91' } },
+        { name: 'fire', expected: { from: '#ff416c', to: '#ff4b2b' } },
+      ];
 
-      const result = await generateOGPAction(formData);
+      for (const preset of presets) {
+        // Given: プリセットごとのフォームデータ
+        const formData = new FormData();
+        formData.append('title', 'Test Title');
+        formData.append('gradient', preset.name);
 
-      expect(result.success).toBe(true);
-      expect(mockGenerateOGPImagePng).toHaveBeenCalledWith(
-        expect.objectContaining({
-          gradient: { from: '#11998e', to: '#38ef7d' },
-        }),
-      );
+        // When: アクションを実行
+        await generateOGPAction(formData);
+
+        // Then: 正しいグラデーションが設定される
+        expect(saveOGPMetadata).toHaveBeenCalledWith(
+          expect.objectContaining({
+            gradient: preset.expected,
+          }),
+        );
+
+        vi.clearAllMocks();
+      }
     });
   });
 
-  describe('バリデーションエラーケース', () => {
-    it('タイトルが空の場合エラーを返す', async () => {
+  describe('異常系 - バリデーションエラー', () => {
+    it('タイトルが空文字の場合はエラーをスローする', async () => {
+      // Given: 空文字のタイトル
       const formData = new FormData();
       formData.append('title', '');
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'タイトルは必須です',
-      });
-
-      // 後続処理が呼ばれていないことを確認
-      expect(mockGenerateOGPImagePng).not.toHaveBeenCalled();
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        'タイトルは必須です',
+      );
+      expect(saveOGPMetadata).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
     });
 
-    it('タイトルが空白のみの場合エラーを返す', async () => {
+    it('タイトルが空白のみの場合はエラーをスローする', async () => {
+      // Given: 空白のみのタイトル
       const formData = new FormData();
       formData.append('title', '   ');
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'タイトルは必須です',
-      });
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        'タイトルは必須です',
+      );
     });
 
-    it('タイトルがnullの場合エラーを返す', async () => {
+    it('タイトルがnullの場合はエラーをスローする', async () => {
+      // Given: タイトルが設定されていないフォームデータ
       const formData = new FormData();
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'タイトルは必須です',
-      });
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        'タイトルは必須です',
+      );
     });
 
-    it('無効なグラデーションプリセットの場合エラーを返す', async () => {
+    it('グラデーションが無効な場合はエラーをスローする', async () => {
+      // Given: 無効なグラデーション
       const formData = new FormData();
-      formData.append('title', '有効なタイトル');
+      formData.append('title', 'Test Title');
       formData.append('gradient', 'invalid-gradient');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: '有効なグラデーションを選択してください',
-      });
-
-      expect(mockGenerateOGPImagePng).not.toHaveBeenCalled();
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        '有効なグラデーションを選択してください',
+      );
+      expect(saveOGPMetadata).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
     });
 
-    it('グラデーションが未指定の場合エラーを返す', async () => {
+    it('グラデーションがnullの場合はエラーをスローする', async () => {
+      // Given: グラデーションが設定されていないフォームデータ
       const formData = new FormData();
-      formData.append('title', '有効なタイトル');
+      formData.append('title', 'Test Title');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: '有効なグラデーションを選択してください',
-      });
-    });
-
-    it('OGPオプションバリデーションが失敗した場合エラーを返す', async () => {
-      mockValidateOGPOptions.mockReturnValue(false);
-
-      const formData = new FormData();
-      formData.append('title', '有効なタイトル');
-      formData.append('gradient', 'sunset');
-
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'OGPオプションが無効です',
-      });
-
-      expect(mockGenerateOGPImagePng).not.toHaveBeenCalled();
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        '有効なグラデーションを選択してください',
+      );
     });
   });
 
-  describe('内部エラーケース', () => {
-    it('画像生成でエラーが発生した場合適切なエラーを返す', async () => {
-      mockGenerateOGPImagePng.mockRejectedValue(new Error('画像生成エラー'));
+  describe('異常系 - 外部依存関係のエラー', () => {
+    it('saveOGPMetadataが失敗した場合はエラーをスローする', async () => {
+      // Given: saveOGPMetadataが失敗する状況
+      const mockError = new Error('KV save failed');
+      vi.mocked(saveOGPMetadata).mockRejectedValue(mockError);
 
       const formData = new FormData();
-      formData.append('title', '有効なタイトル');
+      formData.append('title', 'Test Title');
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'OGP画像の生成に失敗しました',
-      });
-
-      // エラー後の処理が呼ばれていないことを確認
-      expect(mockUploadOGPImage).not.toHaveBeenCalled();
-      expect(mockSaveOGPMetadata).not.toHaveBeenCalled();
+      // When & Then: エラーがスローされる
+      await expect(generateOGPAction(formData)).rejects.toThrow(
+        'OGP画像の生成に失敗しました',
+      );
+      expect(redirect).not.toHaveBeenCalled();
     });
 
-    it('R2アップロードでエラーが発生した場合適切なエラーを返す', async () => {
-      mockUploadOGPImage.mockRejectedValue(new Error('R2アップロードエラー'));
+    it('saveOGPMetadataが失敗してもconsole.errorが呼ばれる', async () => {
+      // Given: console.errorのスパイ
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const mockError = new Error('KV save failed');
+      vi.mocked(saveOGPMetadata).mockRejectedValue(mockError);
 
       const formData = new FormData();
-      formData.append('title', '有効なタイトル');
+      formData.append('title', 'Test Title');
       formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
+      // When: アクションを実行（エラーを無視）
+      try {
+        await generateOGPAction(formData);
+      } catch {
+        // エラーは無視
+      }
 
-      expect(result).toEqual({
-        success: false,
-        error: 'OGP画像の生成に失敗しました',
-      });
-
-      // KV保存が呼ばれていないことを確認
-      expect(mockSaveOGPMetadata).not.toHaveBeenCalled();
-    });
-
-    it('KVメタデータ保存でエラーが発生した場合適切なエラーを返す', async () => {
-      mockSaveOGPMetadata.mockRejectedValue(new Error('KV保存エラー'));
-
-      const formData = new FormData();
-      formData.append('title', '有効なタイトル');
-      formData.append('gradient', 'sunset');
-
-      const result = await generateOGPAction(formData);
-
-      expect(result).toEqual({
-        success: false,
-        error: 'OGP画像の生成に失敗しました',
-      });
-    });
-  });
-
-  describe('日本語処理', () => {
-    it('日本語タイトルを正常に処理する', async () => {
-      const formData = new FormData();
-      formData.append('title', 'これは日本語のタイトルです');
-      formData.append('gradient', 'purple');
-
-      const result = await generateOGPAction(formData);
-
-      expect(result.success).toBe(true);
-      expect(mockGenerateOGPImagePng).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'これは日本語のタイトルです',
-        }),
+      // Then: エラーがログに記録される
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'OGP generation action failed:',
+        mockError,
       );
 
-      expect(mockUploadOGPImage).toHaveBeenCalledWith(
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('境界値テスト', () => {
+    it('最小長のタイトル（1文字）で成功する', async () => {
+      // Given: saveOGPMetadataが成功する状況とテストデータ
+      vi.mocked(saveOGPMetadata).mockResolvedValue();
+      const formData = new FormData();
+      formData.append('title', 'A');
+      formData.append('gradient', 'sunset');
+
+      // When: アクションを実行
+      await generateOGPAction(formData);
+
+      // Then: 正常に処理される
+      expect(saveOGPMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'これは日本語のタイトルです',
+          title: 'A',
         }),
       );
     });
 
-    it('絵文字を含むタイトルを正常に処理する', async () => {
+    it('非常に長いタイトルでも成功する', async () => {
+      // Given: saveOGPMetadataが成功する状況と長いタイトル
+      vi.mocked(saveOGPMetadata).mockResolvedValue();
+      const longTitle = 'A'.repeat(1000);
       const formData = new FormData();
-      formData.append('title', '🎉 祝！新機能リリース 🚀');
-      formData.append('gradient', 'fire');
+      formData.append('title', longTitle);
+      formData.append('gradient', 'sunset');
 
-      const result = await generateOGPAction(formData);
+      // When: アクションを実行
+      await generateOGPAction(formData);
 
-      expect(result.success).toBe(true);
-      expect(mockGenerateOGPImagePng).toHaveBeenCalledWith(
+      // Then: 正常に処理される
+      expect(saveOGPMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: '🎉 祝！新機能リリース 🚀',
+          title: longTitle,
         }),
+      );
+    });
+  });
+
+  describe('独立性の確保', () => {
+    it('複数回実行しても独立したUUIDが生成される', async () => {
+      // Given: saveOGPMetadataが成功する状況と複数のUUIDを返すモック
+      vi.mocked(saveOGPMetadata).mockResolvedValue();
+      const mockUUIDs = ['uuid-1', 'uuid-2', 'uuid-3'];
+      let callCount = 0;
+      vi.mocked(crypto.randomUUID).mockImplementation(
+        () => mockUUIDs[callCount++],
+      );
+
+      const formData = new FormData();
+      formData.append('title', 'Test Title');
+      formData.append('gradient', 'sunset');
+
+      // When: 複数回実行
+      await generateOGPAction(formData);
+      await generateOGPAction(formData);
+      await generateOGPAction(formData);
+
+      // Then: 各回で異なるUUIDが使用される
+      expect(saveOGPMetadata).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: 'uuid-1' }),
+      );
+      expect(saveOGPMetadata).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: 'uuid-2' }),
+      );
+      expect(saveOGPMetadata).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({ id: 'uuid-3' }),
       );
     });
   });
