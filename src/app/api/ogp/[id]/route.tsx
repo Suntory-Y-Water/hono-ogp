@@ -23,7 +23,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     return new ImageResponse(
-      <OGPTemplate title={metadata.title} gradient={metadata.gradient} />,
+      <OGPTemplate
+        title={metadata.title}
+        gradient={metadata.gradient}
+        icon={metadata.icon}
+        author={metadata.author}
+      />,
       {
         width: 1200,
         height: 630,
