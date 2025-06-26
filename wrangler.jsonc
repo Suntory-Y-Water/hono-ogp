@@ -20,6 +20,12 @@
       "binding": "OGP_METADATA_KV",
       "id": "f8370fc699ea4f4eba214c5c85e74f5b"
     }
+  ],
+  "r2_buckets": [
+    {
+      "bucket_name": "ogp-images",
+      "binding": "OGP_IMAGES"
+    }
   ]
   /**
    * Smart Placement

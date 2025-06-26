@@ -1,11 +1,11 @@
-# OGP画像生成サービス - Claude Code ガイド
+# OGP Image Generator - Claude Code ガイド
 
 ## プロジェクト概要
 
 動的にOGP画像を生成するサービスです。HonoXとCloudflare Workersを基盤とし、Satoriを利用してHTML/CSSから画像を生成します。記事タイトル、アイコン、著者名、背景などをカスタマイズ可能です。
 
-- プロジェクト名: OGP画像生成サービス
-- プロジェクトタイプ: Webアプリケーション（動的OGP画像生成サービス）
+- プロジェクト名: OGP Image Generator
+- プロジェクトタイプ: Webアプリケーション（動的OGP Image Generator）
 - 主要機能:
   - OGP画像作成フォーム（タイトル、背景のグラデーション選択など）
   - APIエンドポイント経由での画像プレビュー

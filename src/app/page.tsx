@@ -1,5 +1,5 @@
 /**
- * OGP画像生成サービス - メインページ
+ * OGP Image Generator - メインページ
  * フォーム入力からOGP画像生成までの統合フロー
  */
 
@@ -13,7 +13,7 @@ export default function Home() {
           {/* ヘッダー */}
           <div className='text-center mb-8'>
             <h1 className='text-4xl font-bold text-gray-900 mb-4'>
-              OGP画像生成サービス
+              OGP Image Generator
             </h1>
             <p className='text-xl text-gray-600'>
               タイトルとグラデーションを選択して、美しいOGP画像を生成しましょう

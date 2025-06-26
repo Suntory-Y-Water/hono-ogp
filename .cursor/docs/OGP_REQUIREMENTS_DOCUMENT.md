@@ -1,10 +1,10 @@
-# OGP画像生成サービス 要件定義書 (Next.js版)
+# OGP Image Generator 要件定義書 (Next.js版)
 
 ## プロジェクト概要
 
 **要望ID**: ogp-002  
 **タイトル**: Next.js + Cloudflare Workersを使ってOGP画像作成サービスを作りたい  
-**概要**: 動的OGP画像生成サービス（記事タイトル、アイコン、著者、背景画像、グラデーション対応）
+**概要**: 動的OGP Image Generator（記事タイトル、アイコン、著者、背景画像、グラデーション対応）
 
 ---
 
