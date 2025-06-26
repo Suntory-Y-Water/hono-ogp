@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -27,7 +28,7 @@ const formSchema = z.object({
   title: z
     .string()
     .min(1, 'タイトルは必須です')
-    .max(100, 'タイトルは100文字以内で入力してください'),
+    .max(50, 'タイトルは50文字以内で入力してください'),
   gradient: z
     .string()
     .refine(
@@ -39,10 +40,22 @@ const formSchema = z.object({
     .url('有効なURLを入力してください')
     .optional()
     .or(z.literal('')),
-  author: z
-    .string()
-    .max(50, '著者名は50文字以内で入力してください')
-    .optional(),
+  author: z.string().max(10, '著者名は10文字以内で入力してください').optional(),
+  iconFile: z
+    .instanceof(File)
+    .optional()
+    .refine(
+      (file) => !file || file.size <= 1024 * 1024,
+      '画像ファイルは1MB以下にしてください',
+    )
+    .refine(
+      (file) =>
+        !file ||
+        ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(
+          file.type,
+        ),
+      'JPEG、PNG、GIF、WebP形式のファイルを選択してください',
+    ),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,6 +75,9 @@ type GradientOption = {
 export function OGPCreationForm() {
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<GenerateResult | null>(null);
+  const [iconMode, setIconMode] = useState<'url' | 'upload'>('url');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -70,6 +86,7 @@ export function OGPCreationForm() {
       gradient: 'ocean',
       icon: '',
       author: '',
+      iconFile: undefined,
     },
   });
 
@@ -82,8 +99,11 @@ export function OGPCreationForm() {
         const formData = new FormData();
         formData.append('title', data.title);
         formData.append('gradient', data.gradient);
-        if (data.icon) {
+        if (iconMode === 'url' && data.icon) {
           formData.append('icon', data.icon);
+        }
+        if (iconMode === 'upload' && uploadedFile) {
+          formData.append('iconFile', uploadedFile);
         }
         if (data.author) {
           formData.append('author', data.author);
@@ -113,6 +133,39 @@ export function OGPCreationForm() {
       }
     });
   });
+
+  function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      form.setValue('iconFile', file);
+
+      // プレビュー用のURLを生成
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  }
+
+  function handlePaste(event: React.ClipboardEvent) {
+    const items = event.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          setUploadedFile(file);
+          form.setValue('iconFile', file);
+
+          // プレビュー用のURLを生成
+          const url = URL.createObjectURL(file);
+          setPreviewUrl(url);
+
+          // アップロードモードに切り替え
+          setIconMode('upload');
+        }
+        break;
+      }
+    }
+  }
 
   const gradientOptions: GradientOption[] = [
     { value: 'sunset', label: 'サンセット' },
@@ -182,23 +235,80 @@ export function OGPCreationForm() {
             )}
           </div>
 
-          {/* アイコンURL入力 */}
+          {/* アイコン設定 */}
           <div className='space-y-2'>
-            <Label htmlFor='icon'>アイコンURL（任意）</Label>
-            <Input
-              id='icon'
-              type='url'
-              placeholder='https://example.com/avatar.jpg'
-              {...form.register('icon')}
-              onChange={(e) => {
-                form.setValue('icon', e.target.value);
-              }}
-            />
-            {form.formState.errors.icon && (
-              <p className='text-sm text-red-600'>
-                {form.formState.errors.icon.message}
-              </p>
-            )}
+            <Label>アイコン設定（任意）</Label>
+            <Tabs
+              value={iconMode}
+              onValueChange={(value) => setIconMode(value as 'url' | 'upload')}
+            >
+              <TabsList className='grid w-full grid-cols-2'>
+                <TabsTrigger value='url'>URLを入力</TabsTrigger>
+                <TabsTrigger value='upload'>画像をアップロード</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value='url' className='space-y-2'>
+                <Input
+                  id='icon'
+                  type='url'
+                  placeholder='https://example.com/avatar.jpg'
+                  {...form.register('icon')}
+                  onChange={(e) => {
+                    form.setValue('icon', e.target.value);
+                  }}
+                />
+                {form.formState.errors.icon && (
+                  <p className='text-sm text-red-600'>
+                    {form.formState.errors.icon.message}
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value='upload' className='space-y-2'>
+                <div
+                  className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors'
+                  onPaste={handlePaste}
+                  // tabIndex={0}
+                >
+                  <input
+                    type='file'
+                    accept='image/*'
+                    onChange={handleFileUpload}
+                    className='hidden'
+                    id='iconFile'
+                  />
+                  <label htmlFor='iconFile' className='cursor-pointer'>
+                    <div className='space-y-2'>
+                      <div className='text-gray-600'>
+                        <p>
+                          画像をドラッグ＆ドロップ、クリックして選択、またはCtrl+Vで貼り付け
+                        </p>
+                        <p className='text-sm'>
+                          JPEG, PNG, GIF, WebP (最大1MB)
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {previewUrl && (
+                  <div className='mt-4'>
+                    <p className='text-sm text-gray-600 mb-2'>プレビュー:</p>
+                    <img
+                      src={previewUrl}
+                      alt='アップロード画像プレビュー'
+                      className='max-w-32 max-h-32 object-cover rounded-lg border'
+                    />
+                  </div>
+                )}
+
+                {form.formState.errors.iconFile && (
+                  <p className='text-sm text-red-600'>
+                    {form.formState.errors.iconFile.message}
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* 著者名入力 */}

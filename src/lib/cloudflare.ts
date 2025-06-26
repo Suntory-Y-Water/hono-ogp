@@ -1,6 +1,6 @@
 /**
  * Cloudflare統合ライブラリ
- * KV操作のみを提供（ImageResponseで動的生成するためR2は不使用）
+ * KV操作とR2画像ストレージ機能を提供
  */
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
@@ -56,4 +56,54 @@ export async function getOGPMetadata(id: string): Promise<OGPMetadata | null> {
   }
 
   return JSON.parse(data);
+}
+
+/**
+ * 画像をR2バケットに保存
+ */
+export async function uploadImageToR2(file: File): Promise<string> {
+  const { env } = getCloudflareContext();
+
+  const imageId = crypto.randomUUID();
+  const extension = file.name.split('.').pop() || 'jpg';
+  const key = `avatar/${imageId}.${extension}`;
+
+  const arrayBuffer = await file.arrayBuffer();
+
+  console.log(env.OGP_IMAGES);
+
+  await env.OGP_IMAGES.put(key, arrayBuffer, {
+    httpMetadata: {
+      contentType: file.type,
+    },
+  });
+
+  return key;
+}
+
+/**
+ * R2バケットから画像を取得してBase64エンコードして返す
+ */
+export async function getImageAsBase64(key: string): Promise<string | null> {
+  const { env } = getCloudflareContext();
+
+  const object = await env.OGP_IMAGES.get(key);
+  if (!object) {
+    return null;
+  }
+
+  const arrayBuffer = await object.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  
+  // チャンクに分けてBase64変換（スタックオーバーフロー回避）
+  let binaryString = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.subarray(i, i + chunkSize);
+    binaryString += String.fromCharCode(...chunk);
+  }
+  const base64 = btoa(binaryString);
+
+  const contentType = object.httpMetadata?.contentType || 'image/jpeg';
+  return `data:${contentType};base64,${base64}`;
 }

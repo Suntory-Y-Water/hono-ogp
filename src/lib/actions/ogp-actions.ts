@@ -7,7 +7,7 @@
 
 import { redirect } from 'next/navigation';
 import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
-import { saveOGPMetadata } from '@/lib/cloudflare';
+import { saveOGPMetadata, uploadImageToR2 } from '@/lib/cloudflare';
 
 /**
  * OGP画像生成Server Action
@@ -17,6 +17,7 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
   const title = formData.get('title') as string;
   const gradientPreset = formData.get('gradient') as GradientPresetName;
   const icon = formData.get('icon') as string | null;
+  const iconFile = formData.get('iconFile') as File | null;
   const author = formData.get('author') as string | null;
 
   // バリデーション
@@ -28,10 +29,31 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     throw new Error('有効なグラデーションを選択してください');
   }
 
-  // アイコンURLのバリデーション（指定された場合のみ）
-  if (icon && icon.trim().length > 0) {
+  // アイコンの処理
+  let iconUrl: string | undefined;
+
+  if (iconFile && iconFile.size > 0) {
+    // ファイルアップロードの場合
+    if (iconFile.size > 1024 * 1024) {
+      throw new Error('画像ファイルは1MB以下にしてください');
+    }
+
+    if (
+      !['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(
+        iconFile.type,
+      )
+    ) {
+      throw new Error('JPEG、PNG、GIF、WebP形式のファイルを選択してください');
+    }
+
+    // R2にアップロード
+    const r2Key = await uploadImageToR2(iconFile);
+    iconUrl = r2Key; // R2のキーを直接保存
+  } else if (icon && icon.trim().length > 0) {
+    // URLの場合
     try {
       new URL(icon);
+      iconUrl = icon.trim();
     } catch {
       throw new Error('有効なアイコンURLを入力してください');
     }
@@ -43,14 +65,14 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
   const id = crypto.randomUUID();
 
   try {
-    // KVにメタデータ保存（ImageResponseで動的生成するため画像ファイルは保存しない）
+    // KVにメタデータ保存
     await saveOGPMetadata({
       id,
-      key: `ogp-${id}`, // R2は使わないがキーは必要
+      key: `ogp-${id}`,
       title: title.trim(),
       gradient,
       url: `/api/ogp/${id}`,
-      icon: icon?.trim() || undefined,
+      icon: iconUrl,
       author: author?.trim() || undefined,
     });
   } catch (error) {

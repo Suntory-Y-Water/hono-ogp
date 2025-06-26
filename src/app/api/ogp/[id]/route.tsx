@@ -4,7 +4,7 @@
  */
 
 import { ImageResponse } from 'next/og';
-import { getOGPMetadata } from '@/lib/cloudflare';
+import { getOGPMetadata, getImageAsBase64 } from '@/lib/cloudflare';
 import { OGPTemplate } from '@/components/features/ogp-template';
 
 type RouteParams = {
@@ -22,11 +22,23 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return new Response('OGP image not found', { status: 404 });
     }
 
+    // アイコンがR2キーの場合はBase64に変換
+    let iconSrc = metadata.icon;
+    if (
+      iconSrc &&
+      !iconSrc.startsWith('http') &&
+      !iconSrc.startsWith('data:')
+    ) {
+      // R2キーの場合
+      const base64Image = await getImageAsBase64(iconSrc);
+      iconSrc = base64Image || undefined;
+    }
+
     return new ImageResponse(
       <OGPTemplate
         title={metadata.title}
         gradient={metadata.gradient}
-        icon={metadata.icon}
+        icon={iconSrc}
         author={metadata.author}
       />,
       {
