@@ -34,6 +34,15 @@ const formSchema = z.object({
       (val) => val in GRADIENT_PRESETS,
       '有効なグラデーションを選択してください',
     ) as z.ZodType<GradientPresetName>,
+  icon: z
+    .string()
+    .url('有効なURLを入力してください')
+    .optional()
+    .or(z.literal('')),
+  author: z
+    .string()
+    .max(50, '著者名は50文字以内で入力してください')
+    .optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -59,6 +68,8 @@ export function OGPCreationForm() {
     defaultValues: {
       title: '',
       gradient: 'ocean',
+      icon: '',
+      author: '',
     },
   });
 
@@ -71,6 +82,12 @@ export function OGPCreationForm() {
         const formData = new FormData();
         formData.append('title', data.title);
         formData.append('gradient', data.gradient);
+        if (data.icon) {
+          formData.append('icon', data.icon);
+        }
+        if (data.author) {
+          formData.append('author', data.author);
+        }
 
         await generateOGPAction(formData);
         // redirect()が呼ばれるため、ここには到達しない
@@ -161,6 +178,43 @@ export function OGPCreationForm() {
             {form.formState.errors.gradient && (
               <p className='text-sm text-red-600'>
                 {form.formState.errors.gradient.message}
+              </p>
+            )}
+          </div>
+
+          {/* アイコンURL入力 */}
+          <div className='space-y-2'>
+            <Label htmlFor='icon'>アイコンURL（任意）</Label>
+            <Input
+              id='icon'
+              type='url'
+              placeholder='https://example.com/avatar.jpg'
+              {...form.register('icon')}
+              onChange={(e) => {
+                form.setValue('icon', e.target.value);
+              }}
+            />
+            {form.formState.errors.icon && (
+              <p className='text-sm text-red-600'>
+                {form.formState.errors.icon.message}
+              </p>
+            )}
+          </div>
+
+          {/* 著者名入力 */}
+          <div className='space-y-2'>
+            <Label htmlFor='author'>著者名（任意）</Label>
+            <Input
+              id='author'
+              placeholder='著者名を入力してください'
+              {...form.register('author')}
+              onChange={(e) => {
+                form.setValue('author', e.target.value);
+              }}
+            />
+            {form.formState.errors.author && (
+              <p className='text-sm text-red-600'>
+                {form.formState.errors.author.message}
               </p>
             )}
           </div>

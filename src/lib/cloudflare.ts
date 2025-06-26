@@ -17,6 +17,8 @@ export interface OGPMetadata {
     to: string;
   };
   url: string;
+  icon?: string;
+  author?: string;
   createdAt: string;
 }
 

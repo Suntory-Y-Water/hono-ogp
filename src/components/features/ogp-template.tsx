@@ -8,6 +8,8 @@ export interface OGPTemplateProps {
     from: string;
     to: string;
   };
+  icon?: string;
+  author?: string;
 }
 
 /**
@@ -16,6 +18,8 @@ export interface OGPTemplateProps {
 export function OGPTemplate({
   title,
   gradient = { from: '#9BD4FF', to: '#FFFA9B' },
+  icon,
+  author,
 }: OGPTemplateProps) {
   const backgroundStyle = `linear-gradient(to bottom right, ${gradient.from}, ${gradient.to})`;
 
@@ -50,6 +54,29 @@ export function OGPTemplate({
           <div style={{ fontSize: 64, maxWidth: 1000, fontWeight: 600 }}>
             {title}
           </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {author && (
+            <div
+              style={{
+                fontSize: 48,
+                fontWeight: 400,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {icon && (
+                <img
+                  src={icon}
+                  width={60}
+                  height={60}
+                  alt='avatar'
+                  style={{ borderRadius: 9999, marginRight: 24 }}
+                />
+              )}
+              {author}
+            </div>
+          )}
         </div>
       </div>
     </div>

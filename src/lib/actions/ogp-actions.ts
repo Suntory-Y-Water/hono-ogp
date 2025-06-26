@@ -16,6 +16,8 @@ import { saveOGPMetadata } from '@/lib/cloudflare';
 export async function generateOGPAction(formData: FormData): Promise<void> {
   const title = formData.get('title') as string;
   const gradientPreset = formData.get('gradient') as GradientPresetName;
+  const icon = formData.get('icon') as string | null;
+  const author = formData.get('author') as string | null;
 
   // バリデーション
   if (!title || title.trim().length === 0) {
@@ -24,6 +26,15 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
 
   if (!gradientPreset || !GRADIENT_PRESETS[gradientPreset]) {
     throw new Error('有効なグラデーションを選択してください');
+  }
+
+  // アイコンURLのバリデーション（指定された場合のみ）
+  if (icon && icon.trim().length > 0) {
+    try {
+      new URL(icon);
+    } catch {
+      throw new Error('有効なアイコンURLを入力してください');
+    }
   }
 
   const gradient = GRADIENT_PRESETS[gradientPreset];
@@ -39,6 +50,8 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
       title: title.trim(),
       gradient,
       url: `/api/ogp/${id}`,
+      icon: icon?.trim() || undefined,
+      author: author?.trim() || undefined,
     });
   } catch (error) {
     console.error('OGP generation action failed:', error);
