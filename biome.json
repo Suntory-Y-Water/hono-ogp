@@ -36,7 +36,8 @@
       "complexity": {
         "noForEach": "off"
       }
-    }
+    },
+    "ignore": ["**/*.test.tsx", "**/*.test.ts"]
   },
   "overrides": [
     {

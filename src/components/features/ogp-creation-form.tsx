@@ -40,7 +40,7 @@ const formSchema = z.object({
     .url('有効なURLを入力してください')
     .optional()
     .or(z.literal('')),
-  author: z.string().max(10, '著者名は10文字以内で入力してください').optional(),
+  author: z.string().max(40, '著者名は40文字以内で入力してください').optional(),
   iconFile: z
     .instanceof(File)
     .optional()

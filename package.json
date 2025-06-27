@@ -7,8 +7,9 @@
     "dev:clean": "rm -rf .next .open-next .wrangler && pnpm run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "biome lint ./src",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
