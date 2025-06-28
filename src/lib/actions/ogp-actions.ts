@@ -49,7 +49,7 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     }
 
     // R2にアップロード
-    const r2Key = await uploadImageToR2(iconFile);
+    const r2Key = await uploadImageToR2(iconFile, 'icons');
     iconUrl = r2Key; // R2のキーを直接保存
   } else if (icon && icon.trim().length > 0) {
     // URLの場合
@@ -79,7 +79,7 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     }
 
     // R2にアップロード
-    const r2Key = await uploadImageToR2(companyLogoFile);
+    const r2Key = await uploadImageToR2(companyLogoFile, 'company-logos');
     companyLogoUrl = r2Key; // R2のキーを直接保存
   } else if (companyLogo && companyLogo.trim().length > 0) {
     // URLの場合
