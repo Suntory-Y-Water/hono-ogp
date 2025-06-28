@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - 'feature-*'
+      - 'feature/*'
+      # 依存関係が更新されたときにも一応チェックする
+      - 'dependabot/*' 
+    paths: ['**/*.ts', '**/*.tsx', '**/*.js', '.github/**', '**/*.json']
+  pull_request:
+    branches:
+      - main
+    paths: ['**/*.ts', '**/*.tsx', '**/*.js', '.github/**', '**/*.json']
+
+defaults:
+  run:
+    shell: bash
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # GitHub Actions品質チェック
+  actions-security:
+    permissions:
+      contents: read
+      security-events: write
+    uses: Suntory-Y-Water/my-github-actions-ci/.github/workflows/reusable-actions-security.yml@b8a9f49f267810b6e23524b2a90f76279c1dbcec
+
+
+  # TypeScript CI + バージョンチェック
+  typescript-ci:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: Suntory-Y-Water/my-github-actions-ci/.github/workflows/reusable-typescript-ci.yml@b8a9f49f267810b6e23524b2a90f76279c1dbcec
+    with:
+      node-version: '20'
+      pnpm-version: '9'
+      timeout-minutes: 5
+      version-check: false
