@@ -6,8 +6,7 @@
 import { ImageResponse } from 'next/og';
 import { getOGPMetadata, getImageAsBase64 } from '@/lib/cloudflare';
 import { OGPTemplate } from '@/components/features/ogp-template';
-import fs from 'fs';
-import path from 'path';
+import { loadFont } from '@/lib/utils';
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -18,9 +17,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { id } = await params;
 
     // フォントファイルを読み込み
-    const fontData = fs.readFileSync(
-      path.join(process.cwd(), 'public/fonts/NotoSansJP-SemiBold.ttf'),
-    );
+    const fontData = await loadFont('/fonts/NotoSansJP-SemiBold.ttf');
 
     // KVからメタデータを取得
     const metadata = await getOGPMetadata(id);
