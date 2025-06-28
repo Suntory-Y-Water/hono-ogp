@@ -1,203 +1,77 @@
-# OGP画像生成サービス - Claude Code ガイド
+# Claude Code Configuration
+
+## YOU MUST
+
+日本語で回答する
 
 ## プロジェクト概要
 
-動的にOGP画像を生成するサービスです。HonoXとCloudflare Workersを基盤とし、Satoriを利用してHTML/CSSから画像を生成します。記事タイトル、アイコン、著者名、背景などをカスタマイズ可能です。
-
-- プロジェクト名: OGP画像生成サービス
-- プロジェクトタイプ: Webアプリケーション（動的OGP画像生成サービス）
-- 主要機能:
-  - OGP画像作成フォーム（タイトル、背景のグラデーション選択など）
-  - APIエンドポイント経由での画像プレビュー
-  - 生成結果の表示とOGP用URLの発行
-  - 画像配信APIエンドポイント
+OpenNext.jsを使用してCloudflare Workersにデプロイされた、Open Graph Protocol画像を動的に生成するNext.jsアプリケーション。
 
 ## 技術スタック
 
-### フロントエンド
+- **フレームワーク**: Next.js 15.3.4 (App Router), React 19.1.0
+- **言語**: TypeScript 5.8.3
+- **デプロイ**: Cloudflare Workers via @opennextjs/cloudflare
+- **スタイリング**: Tailwind CSS 4.1.10
+- **UI**: shadcn/ui with Radix UI primitives
+- **フォーム**: React Hook Form with Zod validation
+- **テスト**: Vitest with Happy DOM
+- **リンティング**: Biome (2スペースインデント、シングルクォート、末尾カンマ)
+- **パッケージマネージャー**: pnpm
 
-- フレームワーク/ライブラリ: Next.
-- スタイリング: Tailwind CSS 4.0
-- プレビュー表示: APIエンドポイント経由でのサーバーサイド画像生成
+## よく使用するコマンド
 
-### バックエンド
-
-- 言語: TypeScript(Next.js)
-- フレームワーク: Next.js(Server Components)
-- ランタイム: Cloudflare Workers
-- データベース: Cloudflare KV (メタデータ), Cloudflare R2 (画像ファイル)
-- 画像生成: Satori, svg2png-wasm
-
-### 開発・インフラ環境
-
-- パッケージマネージャー: pnpm
-- テストフレームワーク: Vitest 3.2.4
-- リンター: biome 2.0.0
-- CI/CD: GitHub Actions
-- ホスティング: Cloudflare
-
-## プロジェクト構造
-
-Next.jsのfile-based routingに基づいた構成です。
-
-## データベース設計
-
-Cloudflareのストレージサービスを利用してデータを管理します。
-
-- モデル構成:
-  - `KV (キー: ogp:${id})`: 画像メタデータを格納。値には画像ID、R2のURL、タイトルやグラデーションなどの生成パラメータ、作成日時を含む。TTLは1年。
-
-## テストガイドライン
-
-このプロジェクトでは、Vitestと`@cloudflare/vitest-pool-workers`を組み合わせて、Cloudflare Workersの本番環境を模した統合テストを実施します。APIエンドポイントやデータベース連携など、アプリケーション全体の動作を保証することを目的とします。
-
-- ファイル配置:
-  - すべてのテストファイルは、プロジェクトルートの `src/test/` ディレクトリ内に配置します。
-  - ファイル名は `[テスト対象の機能].test.ts` のように、末尾を `.test.ts` とします。
-
-- テスト対象:
-  - APIエンドポイント: Honoのアプリケーションインスタンス (`app/server.ts`) にリクエストを送り、ステータスコードやレスポンスを検証します。
-  - ServerComponentで使用する関数が正常に動作することを確認します。
-  - KV関数: `app/db.ts`内の関数が、KVを正しく操作できることを検証します。
-  - ユーティリティ関数などの純粋な補助関数をテストします。
-
-- 記述ルール:
-  - テストはVitestを使用し、`describe`/`it`構文で記述します。
-  - `describe`ブロックは、テストの対象や状況を日本語で分かりやすく記述します。
-
-### テストコードは変更しない
-
-テストコードの変更は基本的に禁止。
-テストは仕様を表すものであり、実装の正しさを検証するためのものです。
-
-テストが失敗している場合は、実装側を修正してください。
-テストコードを実装に合わせるのは禁止。
-
-テストが誤っていると思ったら質問してください。
-独自判断でテストを書き換えるのは禁止。
-
-#### テストコードを変更しても良い例外
-
-テストコードを変更して良い例外は以下のような場合です。
-
-- テストを追加するタスクを依頼されている。
-- テストを修正するタスクを依頼されている。
-- テストコードに明らかな構文エラーがある。
-- テスト仕様が矛盾している。
-    - この場合は独自に判断するのではなく質問して確認してください。
-- テストコードがテスト対象のAPIと互換性がなくなっている。
-    - この場合は独自に判断するのではなく質問して確認してください。
-
-### テストデータに依存した条件分岐は避ける
-
-実装コードがテストで使用されている具体的なデータ値を特別扱いすることは基本的に禁止。
-具体的なデータ値とは、例えば変数名やテーブル名などです。
-
-データに依存した実装は以下のような問題を引き起こします。
-
-- 脆弱なテスト: テストデータが変更されると実装が機能しなくなる。
-- 隠れた仕様: 特定のデータ名に対する特別な処理が明示的な仕様ではなく暗黙的になる。
-- 汎用性の欠如: 実際の運用環境では機能しない可能性がある。
-
-## テスト駆動開発
-
-テスト駆動開発では、テストコードを先に書き、その後に実装コードを書きます。
-まずテストコードを書いた後、実装コードを書く前に、テストコードがこれで正しいかユーザに確認してください。
-
-## 重要な設定ファイル
-
-- `wrangler.jsonc`: Cloudflare Workersの設定ファイル。R2バケットやKV名前空間のバインディングを定義。
-- `package.json`: プロジェクトの依存関係を管理。`satori`, `svg2png-wasm`などを追加。
-
-## コード生成規約
-### コメント
-
-各ファイルの冒頭には日本語のコメントで仕様を記述する。
-
-出力例
-
-```ts
-/**
- * 2点間のユークリッド距離を計算する
- **/
-type Point = { x: number; y: number };
-export function distance(a: Point, b: Point): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-}
+```bash
+pnpm dev                # 開発サーバーをTurbopackで起動
+pnpm build             # Next.jsアプリケーションをビルド
+pnpm deploy            # Cloudflare Workersにビルド・デプロイ
+pnpm test              # Vitestでテスト実行
+pnpm lint              # Next.jsリンティング実行
+pnpm typegen           # Cloudflare環境の型生成
 ```
 
-### テスト
+## アーキテクチャ
 
-- **ビジネスロジックを含む関数のみ**ユニットテストを実装
-- **実際の関数の動作**をテストし、意味のないテストは禁止
-- **外部依存関係は適切にモック**して、関数の入力・出力・副作用を検証する
-- コードを追加で修正したとき、 `pnpm test` がパスすることを常に確認する
+### コア構造
+- **App Router**: Server Components/Actionsを使用したファイルベースルーティング
+- **画像生成**: `/api/ogp/[id]/route.tsx` - Next.js ImageResponseを使用した動的OGP画像エンドポイント
+- **ストレージ**: Cloudflare R2 (画像) + KV (メタデータ)
+- **フォーム**: `src/lib/actions/`でZodスキーマを使用したReact Hook Form
 
-#### 良いテストの例
-```ts
-// モックを使用した外部依存関係のテスト
-vi.mock('@opennextjs/cloudflare', () => ({
-  getCloudflareContext: () => ({ env: mockEnv }),
-}));
+### 主要ディレクトリ
+- `src/app/` - ページとAPIルート
+- `src/components/features/` - ドメイン固有のコンポーネント（OGPフォーム、テンプレート）
+- `src/lib/actions/` - OGP操作のServer Actions
+- `src/lib/cloudflare.ts` - R2/KV統合レイヤー
+- `src/lib/constants.ts` - グラデーションプリセットと定数
 
-test("OGPメタデータを正常に保存できる", async () => {
-  const testMetadata = { id: 'test', title: 'Test Title' };
-  
-  await saveOGPMetadata(testMetadata);
-  
-  expect(mockEnv.OGP_METADATA_KV.put).toHaveBeenCalledWith(
-    'ogp:test',
-    expect.stringContaining('"id":"test"'),
-    { expirationTtl: 31536000 }
-  );
-});
-```
-- 規約: 
-  - ハードコードは絶対にしないでください。環境変数や設定ファイルを使用して、柔軟に対応できるようにします。
-  - ビジネス上、後から修正を行う可能性がある処理のみ分離する。何でもかんでも単一責任の法則に従って分離すればよいわけではない。
-  - コールバック関数以外でのアロー関数の使用禁止(`map((item) => {})`などはコールバックで記述する)
-  - 例外が発生する可能性が低い場合の不必要な`try-catch`の使用禁止（バリデーション、フェッチ、DB 接続など、発生確率が極めて高い場所でのみ実装する）
-  - `any`型はテストコードのモック関数を除いて、全てのソースコードで定義することを禁止する
-  - すべての処理は関数ベースで作成し、クラスの定義は禁止する。
-  - 引数が2個以上ある関数はオブジェクトで引数を定義する
+### 画像生成フロー
+1. フォーム送信 → Server Action (`ogp-actions.ts`)
+2. R2バケットに画像アップロード、KVストアにメタデータ保存
+3. Reactコンポーネントでテンプレートレンダリング (`ogp-template.tsx`)
+4. ImageResponse APIがPNG/JPEG生成
 
-## Next.js特有の規約
-- データフェッチ用のAPIは作成しないでください。サーバーコンポーネントでServer関数でデータを取得する
-- `クライアントサイドでのユーザーデータ操作`は`ServerActions`を使用する
-- キャッシュは使用しないで常に`no-store(キャッシュ無効化)`で実装する
-- 画像は`next/image`コンポーネントを使用
-- `next/script`を使用して外部スクリプトを最適化
-- useSearchParamsや動的ルーティングの/blog/[id]等のpramas受け取る際は、async/awaitで受け取る
-- `useEffect()`でデータフェッチを控える
+## 環境設定
 
-## UI/UXの規約
-- shadcn/ui をベースとしたコンポーネントの使用
-- コンポーネントのカスタマイズは最小限に抑える
+- Cloudflare R2バケット: "ogp-images"
+- KVネームスペース: "OGP_METADATA_KV"
+- `wrangler.jsonc`でバインディング設定
+- `cloudflare-env.d.ts`で型定義
 
-```typescript
-// ✅ 良い例：shadcn/uiコンポーネントをそのまま使用
-import { Button } from "@/components/ui/button";
+## 開発パターン
 
-// ❌ 悪い例：不必要なカスタマイズ
-const CustomButton = styled(Button)`
-  // 独自のスタイリング
-`;
-```
-- モバイルファーストアプローチ
-- Tailwind のブレークポイントを使用
-  - sm: 640px
-  - md: 768px
-  - lg: 1024px
-  - xl: 1280px
-  - 2xl: 1536px
-- `tailwindcss/animation`の使用
-- 過度なアニメーションを避ける
-- 必要な場合のみ`framer-motion`を使用
-- shadcn/ui のフォームコンポーネントを使用
-- バリデーションメッセージは明確に表示
-- 入力補助の実装（オートコンプリートなど）
+- **関数**: コールバック以外でのアロー関数は使用しない、ネストよりも早期リターン
+- **エラーハンドリング**: try-catchは最小限に、高確率エラーのみ
+- **バリデーション**: すべてのフォーム入力にZodスキーマを使用
+- **ファイルアップロード**: 1MB制限、特定のMIMEタイプのみ
+- **コメント**: ビジネスロジックの説明は日本語で記述
+- **テスト**: Vitest/Happy DOMでコンポーネントテスト
 
-## 重要な依存関係
+## コード生成生後の完了条件
 
-`@opennextjs/cloudflare`は2025年6月21日時点でとても新しい依存関係です。
-ドキュメントは全て`.cursor/docs/cloudflare/opennext-docs/opennext`配下にあるので、実装方法が不明な場合はこのドキュメントを随時確認する
+- [ ] pnpm run lint, typecheck, testを実行してエラーが発生しないことを確認する
+
+## パスエイリアス
+
+- `@/*` → `./src/*`
