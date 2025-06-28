@@ -19,6 +19,8 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
   const icon = formData.get('icon') as string | null;
   const iconFile = formData.get('iconFile') as File | null;
   const author = formData.get('author') as string | null;
+  const companyLogo = formData.get('companyLogo') as string | null;
+  const companyLogoFile = formData.get('companyLogoFile') as File | null;
 
   // バリデーション
   if (!title || title.trim().length === 0) {
@@ -59,6 +61,36 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     }
   }
 
+  // 企業ロゴの処理
+  let companyLogoUrl: string | undefined;
+
+  if (companyLogoFile && companyLogoFile.size > 0) {
+    // ファイルアップロードの場合
+    if (companyLogoFile.size > 1024 * 1024) {
+      throw new Error('企業ロゴファイルは1MB以下にしてください');
+    }
+
+    if (
+      !['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(
+        companyLogoFile.type,
+      )
+    ) {
+      throw new Error('JPEG、PNG、GIF、WebP形式のファイルを選択してください');
+    }
+
+    // R2にアップロード
+    const r2Key = await uploadImageToR2(companyLogoFile);
+    companyLogoUrl = r2Key; // R2のキーを直接保存
+  } else if (companyLogo && companyLogo.trim().length > 0) {
+    // URLの場合
+    try {
+      new URL(companyLogo);
+      companyLogoUrl = companyLogo.trim();
+    } catch {
+      throw new Error('有効な企業ロゴURLを入力してください');
+    }
+  }
+
   const gradient = GRADIENT_PRESETS[gradientPreset];
 
   // 一意のIDを生成
@@ -74,6 +106,7 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
       url: `/api/ogp/${id}`,
       icon: iconUrl,
       author: author?.trim() || undefined,
+      companyLogo: companyLogoUrl,
     });
   } catch (error) {
     console.error('OGP generation action failed:', error);

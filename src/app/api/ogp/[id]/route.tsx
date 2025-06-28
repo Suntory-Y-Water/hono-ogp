@@ -41,12 +41,25 @@ export async function GET(_request: Request, { params }: RouteParams) {
       iconSrc = base64Image || undefined;
     }
 
+    // 企業ロゴがR2キーの場合はBase64に変換
+    let companyLogoSrc = metadata.companyLogo;
+    if (
+      companyLogoSrc &&
+      !companyLogoSrc.startsWith('http') &&
+      !companyLogoSrc.startsWith('data:')
+    ) {
+      // R2キーの場合
+      const base64Image = await getImageAsBase64(companyLogoSrc);
+      companyLogoSrc = base64Image || undefined;
+    }
+
     return new ImageResponse(
       <OGPTemplate
         title={metadata.title}
         gradient={metadata.gradient}
         icon={iconSrc}
         author={metadata.author}
+        companyLogo={companyLogoSrc}
       />,
       {
         width: 1200,

@@ -19,6 +19,7 @@ export interface OGPMetadata {
   url: string;
   icon?: string;
   author?: string;
+  companyLogo?: string;
   createdAt: string;
 }
 
@@ -94,7 +95,7 @@ export async function getImageAsBase64(key: string): Promise<string | null> {
 
   const arrayBuffer = await object.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
-  
+
   // チャンクに分けてBase64変換（スタックオーバーフロー回避）
   let binaryString = '';
   const chunkSize = 8192;

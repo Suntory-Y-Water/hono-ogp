@@ -12,7 +12,6 @@ import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -21,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
 import { generateOGPAction } from '@/lib/actions/ogp-actions';
 
@@ -42,6 +49,26 @@ const formSchema = z.object({
     .or(z.literal('')),
   author: z.string().max(40, '著者名は40文字以内で入力してください').optional(),
   iconFile: z
+    .instanceof(File)
+    .optional()
+    .refine(
+      (file) => !file || file.size <= 1024 * 1024,
+      '画像ファイルは1MB以下にしてください',
+    )
+    .refine(
+      (file) =>
+        !file ||
+        ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(
+          file.type,
+        ),
+      'JPEG、PNG、GIF、WebP形式のファイルを選択してください',
+    ),
+  companyLogo: z
+    .string()
+    .url('有効なURLを入力してください')
+    .optional()
+    .or(z.literal('')),
+  companyLogoFile: z
     .instanceof(File)
     .optional()
     .refine(
@@ -78,6 +105,9 @@ export function OGPCreationForm() {
   const [iconMode, setIconMode] = useState<'url' | 'upload'>('url');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [logoMode, setLogoMode] = useState<'url' | 'upload'>('url');
+  const [uploadedLogoFile, setUploadedLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>('');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -87,26 +117,32 @@ export function OGPCreationForm() {
       icon: '',
       author: '',
       iconFile: undefined,
+      companyLogo: '',
+      companyLogoFile: undefined,
     },
   });
 
-  const handleSubmit = form.handleSubmit((data) => {
+  function onSubmit(data: FormData) {
     startTransition(async () => {
       // エラー状態をリセット
       setResult(null);
 
       try {
         const formData = new FormData();
+
+        // 必須フィールド
         formData.append('title', data.title);
         formData.append('gradient', data.gradient);
-        if (iconMode === 'url' && data.icon) {
-          formData.append('icon', data.icon);
-        }
-        if (iconMode === 'upload' && uploadedFile) {
+        formData.append('icon', data.icon || '');
+        formData.append('author', data.author || '');
+        formData.append('companyLogo', data.companyLogo || '');
+
+        // ファイル（存在する場合のみ）
+        if (uploadedFile) {
           formData.append('iconFile', uploadedFile);
         }
-        if (data.author) {
-          formData.append('author', data.author);
+        if (uploadedLogoFile) {
+          formData.append('companyLogoFile', uploadedLogoFile);
         }
 
         await generateOGPAction(formData);
@@ -132,7 +168,7 @@ export function OGPCreationForm() {
         });
       }
     });
-  });
+  }
 
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -143,6 +179,18 @@ export function OGPCreationForm() {
       // プレビュー用のURLを生成
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+    }
+  }
+
+  function handleLogoFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedLogoFile(file);
+      form.setValue('companyLogoFile', file);
+
+      // プレビュー用のURLを生成
+      const url = URL.createObjectURL(file);
+      setLogoPreviewUrl(url);
     }
   }
 
@@ -167,6 +215,27 @@ export function OGPCreationForm() {
     }
   }
 
+  function handleLogoPaste(event: React.ClipboardEvent) {
+    const items = event.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          setUploadedLogoFile(file);
+          form.setValue('companyLogoFile', file);
+
+          // プレビュー用のURLを生成
+          const url = URL.createObjectURL(file);
+          setLogoPreviewUrl(url);
+
+          // アップロードモードに切り替え
+          setLogoMode('upload');
+        }
+        break;
+      }
+    }
+  }
+
   const gradientOptions: GradientOption[] = [
     { value: 'sunset', label: 'サンセット' },
     { value: 'ocean', label: 'オーシャン' },
@@ -181,174 +250,271 @@ export function OGPCreationForm() {
         <CardTitle>OGP画像設定</CardTitle>
       </CardHeader>
       <CardContent className='space-y-6'>
-        <form onSubmit={handleSubmit} className='space-y-4'>
-          {/* タイトル入力 */}
-          <div className='space-y-2'>
-            <Label htmlFor='title'>タイトル</Label>
-            <Input
-              id='title'
-              placeholder='OGP画像のタイトルを入力してください'
-              {...form.register('title')}
-              onChange={(e) => {
-                form.setValue('title', e.target.value);
-              }}
-            />
-            {form.formState.errors.title && (
-              <p className='text-sm text-red-600'>
-                {form.formState.errors.title.message}
-              </p>
-            )}
-          </div>
-
-          {/* グラデーション選択 */}
-          <div className='space-y-2'>
-            <Label htmlFor='gradient'>グラデーション</Label>
-            <Select
-              value={form.watch('gradient')}
-              onValueChange={(value: GradientPresetName) => {
-                form.setValue('gradient', value);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder='グラデーションを選択' />
-              </SelectTrigger>
-              <SelectContent>
-                {gradientOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className='flex items-center space-x-2'>
-                      <div
-                        className='w-4 h-4 rounded-full'
-                        style={{
-                          background: `linear-gradient(135deg, ${GRADIENT_PRESETS[option.value].from}, ${GRADIENT_PRESETS[option.value].to})`,
-                        }}
-                      />
-                      <span>{option.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.gradient && (
-              <p className='text-sm text-red-600'>
-                {form.formState.errors.gradient.message}
-              </p>
-            )}
-          </div>
-
-          {/* アイコン設定 */}
-          <div className='space-y-2'>
-            <Label>アイコン設定（任意）</Label>
-            <Tabs
-              value={iconMode}
-              onValueChange={(value) => setIconMode(value as 'url' | 'upload')}
-            >
-              <TabsList className='grid w-full grid-cols-2'>
-                <TabsTrigger value='url'>URLを入力</TabsTrigger>
-                <TabsTrigger value='upload'>画像をアップロード</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value='url' className='space-y-2'>
-                <Input
-                  id='icon'
-                  type='url'
-                  placeholder='https://example.com/avatar.jpg'
-                  {...form.register('icon')}
-                  onChange={(e) => {
-                    form.setValue('icon', e.target.value);
-                  }}
-                />
-                {form.formState.errors.icon && (
-                  <p className='text-sm text-red-600'>
-                    {form.formState.errors.icon.message}
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value='upload' className='space-y-2'>
-                <div
-                  className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors'
-                  onPaste={handlePaste}
-                  // tabIndex={0}
-                >
-                  <input
-                    type='file'
-                    accept='image/*'
-                    onChange={handleFileUpload}
-                    className='hidden'
-                    id='iconFile'
-                  />
-                  <label htmlFor='iconFile' className='cursor-pointer'>
-                    <div className='space-y-2'>
-                      <div className='text-gray-600'>
-                        <p>
-                          画像をドラッグ＆ドロップ、クリックして選択、またはCtrl+Vで貼り付け
-                        </p>
-                        <p className='text-sm'>
-                          JPEG, PNG, GIF, WebP (最大1MB)
-                        </p>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                {previewUrl && (
-                  <div className='mt-4'>
-                    <p className='text-sm text-gray-600 mb-2'>プレビュー:</p>
-                    <img
-                      src={previewUrl}
-                      alt='アップロード画像プレビュー'
-                      className='max-w-32 max-h-32 object-cover rounded-lg border'
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            {/* タイトル入力 */}
+            <FormField
+              control={form.control}
+              name='title'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>タイトル</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='OGP画像のタイトルを入力してください'
+                      {...field}
                     />
-                  </div>
-                )}
-
-                {form.formState.errors.iconFile && (
-                  <p className='text-sm text-red-600'>
-                    {form.formState.errors.iconFile.message}
-                  </p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* 著者名入力 */}
-          <div className='space-y-2'>
-            <Label htmlFor='author'>著者名（任意）</Label>
-            <Input
-              id='author'
-              placeholder='著者名を入力してください'
-              {...form.register('author')}
-              onChange={(e) => {
-                form.setValue('author', e.target.value);
-              }}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {form.formState.errors.author && (
-              <p className='text-sm text-red-600'>
-                {form.formState.errors.author.message}
-              </p>
-            )}
-          </div>
 
-          {/* エラー表示 */}
-          {result?.error && (
-            <div className='p-4 bg-red-50 border border-red-200 rounded-md'>
-              <p className='text-red-800'>{result.error}</p>
+            {/* グラデーション選択 */}
+            <FormField
+              control={form.control}
+              name='gradient'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>グラデーション</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='グラデーションを選択' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {gradientOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className='flex items-center space-x-2'>
+                            <div
+                              className='w-4 h-4 rounded-full'
+                              style={{
+                                background: `linear-gradient(135deg, ${GRADIENT_PRESETS[option.value].from}, ${GRADIENT_PRESETS[option.value].to})`,
+                              }}
+                            />
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* アイコン設定 */}
+            <div className='space-y-2'>
+              <FormLabel>アイコン設定（任意）</FormLabel>
+              <Tabs
+                value={iconMode}
+                onValueChange={(value) =>
+                  setIconMode(value as 'url' | 'upload')
+                }
+              >
+                <TabsList className='grid w-full grid-cols-2'>
+                  <TabsTrigger value='url'>URLを入力</TabsTrigger>
+                  <TabsTrigger value='upload'>画像をアップロード</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value='url' className='space-y-2'>
+                  <FormField
+                    control={form.control}
+                    name='icon'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type='url'
+                            placeholder='https://example.com/avatar.jpg'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value='upload' className='space-y-2'>
+                  <FormField
+                    control={form.control}
+                    name='iconFile'
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <div
+                            className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors'
+                            onPaste={handlePaste}
+                          >
+                            <input
+                              type='file'
+                              accept='image/*'
+                              onChange={handleFileUpload}
+                              className='hidden'
+                              id='iconFile'
+                            />
+                            <label
+                              htmlFor='iconFile'
+                              className='cursor-pointer'
+                            >
+                              <div className='space-y-2'>
+                                <div className='text-gray-600'>
+                                  <p>
+                                    画像をドラッグ＆ドロップ、クリックして選択、またはCtrl+Vで貼り付け
+                                  </p>
+                                  <p className='text-sm'>
+                                    JPEG, PNG, GIF, WebP (最大1MB)
+                                  </p>
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {previewUrl && (
+                    <div className='mt-4'>
+                      <p className='text-sm text-gray-600 mb-2'>プレビュー:</p>
+                      <img
+                        src={previewUrl}
+                        alt='アップロード画像プレビュー'
+                        className='max-w-32 max-h-32 object-cover rounded-lg border'
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
-          )}
 
-          {/* 送信ボタン */}
-          <Button
-            type='submit'
-            disabled={
-              isPending ||
-              !form.watch('title')?.trim() ||
-              !form.watch('gradient')
-            }
-            className='w-full'
-          >
-            {isPending ? 'OGP画像を生成中...' : 'OGP画像を生成'}
-          </Button>
-        </form>
+            {/* 著者名入力 */}
+            <FormField
+              control={form.control}
+              name='author'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>著者名（任意）</FormLabel>
+                  <FormControl>
+                    <Input placeholder='著者名を入力してください' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 企業ロゴ設定 */}
+            <div className='space-y-2'>
+              <FormLabel>企業ロゴ設定（任意）</FormLabel>
+              <Tabs
+                value={logoMode}
+                onValueChange={(value) =>
+                  setLogoMode(value as 'url' | 'upload')
+                }
+              >
+                <TabsList className='grid w-full grid-cols-2'>
+                  <TabsTrigger value='url'>URLを入力</TabsTrigger>
+                  <TabsTrigger value='upload'>画像をアップロード</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value='url' className='space-y-2'>
+                  <FormField
+                    control={form.control}
+                    name='companyLogo'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type='url'
+                            placeholder='https://example.com/logo.png'
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value='upload' className='space-y-2'>
+                  <FormField
+                    control={form.control}
+                    name='companyLogoFile'
+                    render={() => (
+                      <FormItem>
+                        <FormControl>
+                          <div
+                            className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors'
+                            onPaste={handleLogoPaste}
+                          >
+                            <input
+                              type='file'
+                              accept='image/*'
+                              onChange={handleLogoFileUpload}
+                              className='hidden'
+                              id='companyLogoFile'
+                            />
+                            <label
+                              htmlFor='companyLogoFile'
+                              className='cursor-pointer'
+                            >
+                              <div className='space-y-2'>
+                                <div className='text-gray-600'>
+                                  <p>
+                                    企業ロゴをドラッグ＆ドロップ、クリックして選択、またはCtrl+Vで貼り付け
+                                  </p>
+                                  <p className='text-sm'>
+                                    JPEG, PNG, GIF, WebP (最大1MB)
+                                  </p>
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {logoPreviewUrl && (
+                    <div className='mt-4'>
+                      <p className='text-sm text-gray-600 mb-2'>プレビュー:</p>
+                      <img
+                        src={logoPreviewUrl}
+                        alt='企業ロゴプレビュー'
+                        className='max-w-32 max-h-32 object-contain rounded-lg border'
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* エラー表示 */}
+            {result?.error && (
+              <div className='p-4 bg-red-50 border border-red-200 rounded-md'>
+                <p className='text-red-800'>{result.error}</p>
+              </div>
+            )}
+
+            {/* 送信ボタン */}
+            <Button
+              type='submit'
+              disabled={
+                isPending ||
+                !form.watch('title')?.trim() ||
+                !form.watch('gradient')
+              }
+              className='w-full'
+            >
+              {isPending ? 'OGP画像を生成中...' : 'OGP画像を生成'}
+            </Button>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );

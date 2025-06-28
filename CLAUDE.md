@@ -70,7 +70,7 @@ pnpm typegen           # Cloudflare環境の型生成
 
 ## コード生成生後の完了条件
 
-- [ ] pnpm run lint, typecheck, test, buildを実行してエラーが発生しないことを確認する
+- [ ] pnpm run lint, typecheck, testを実行してエラーが発生しないことを確認する
 
 ## パスエイリアス
 

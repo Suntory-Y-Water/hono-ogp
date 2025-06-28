@@ -10,6 +10,7 @@ export interface OGPTemplateProps {
   };
   icon?: string;
   author?: string;
+  companyLogo?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ export function OGPTemplate({
   gradient = { from: '#9BD4FF', to: '#FFFA9B' },
   icon,
   author,
+  companyLogo,
 }: OGPTemplateProps) {
   const backgroundStyle = `linear-gradient(to bottom right, ${gradient.from}, ${gradient.to})`;
 
@@ -55,7 +57,13 @@ export function OGPTemplate({
             {title}
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+          }}
+        >
           {author && (
             <div
               style={{
@@ -75,6 +83,27 @@ export function OGPTemplate({
                 />
               )}
               {author}
+            </div>
+          )}
+          {companyLogo && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <img
+                src={companyLogo}
+                width={240}
+                height={60}
+                alt='company logo'
+                style={{
+                  objectFit: 'contain',
+                  maxWidth: 240,
+                  maxHeight: 60,
+                }}
+              />
             </div>
           )}
         </div>
