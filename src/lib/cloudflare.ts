@@ -62,12 +62,15 @@ export async function getOGPMetadata(id: string): Promise<OGPMetadata | null> {
 /**
  * 画像をR2バケットに保存
  */
-export async function uploadImageToR2(file: File): Promise<string> {
+export async function uploadImageToR2(
+  file: File,
+  imagePath = 'images',
+): Promise<string> {
   const { env } = getCloudflareContext();
 
   const imageId = crypto.randomUUID();
   const extension = file.name.split('.').pop() || 'jpg';
-  const key = `avatar/${imageId}.${extension}`;
+  const key = `${imagePath}/${imageId}.${extension}`;
 
   const arrayBuffer = await file.arrayBuffer();
 
