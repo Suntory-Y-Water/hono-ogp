@@ -4,24 +4,24 @@
 
 'use client';
 
+import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
 import type { ComponentProps } from 'react';
 
 type CopyButtonProps = {
   text: string;
-  children: React.ReactNode;
-  successText?: string;
+  showTooltip?: boolean;
 } & Pick<ComponentProps<typeof Button>, 'className'> &
   VariantProps<typeof buttonVariants>;
 
 export function CopyButton({
   text,
-  children,
-  successText = 'コピー済み',
+  showTooltip = true,
   variant = 'outline',
-  size,
+  size = 'icon',
   className,
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
@@ -31,17 +31,34 @@ export function CopyButton({
     setCopied(true);
     setTimeout(() => {
       setCopied(false);
-    }, 2000);
+    }, 1000);
   };
 
   return (
-    <Button
-      onClick={handleCopy}
-      variant={variant}
-      size={size}
-      className={className}
-    >
-      {copied ? successText : children}
-    </Button>
+    <div className='relative'>
+      {/* コピー成功メッセージ */}
+      {copied && showTooltip && (
+        <div className='absolute right-10 top-0 z-20 rounded-md bg-muted/60 px-2 py-1 text-xs font-medium text-foreground'>
+          Copied!
+        </div>
+      )}
+
+      <Button
+        onClick={handleCopy}
+        variant={variant}
+        size={size}
+        className={cn(
+          'size-8 rounded-md opacity-70 transition-opacity hover:bg-muted/30 hover:opacity-100',
+          className,
+        )}
+        aria-label='コピー'
+      >
+        {copied ? (
+          <Check className='size-4 text-green-500' />
+        ) : (
+          <Copy className='size-4 text-muted-foreground' />
+        )}
+      </Button>
+    </div>
   );
 }

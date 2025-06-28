@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { CopyButton } from './copy-button';
+import { SaveImageButton } from './save-image-button';
 import type { OGPMetadata } from '@/lib/cloudflare';
 
 type ResultDisplayProps = {
@@ -55,17 +56,17 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
         <CardContent className='space-y-4'>
           <div>
             <Label htmlFor='image-url'>画像のダイレクトURL</Label>
-            <div className='flex space-x-2 mt-1'>
+            <div className='relative mt-1'>
               <Textarea
                 id='image-url'
                 value={imageUrl}
                 readOnly
                 rows={2}
-                className='flex-1'
+                className='pr-12'
               />
-              <CopyButton text={imageUrl} className='cursor-pointer'>
-                コピー
-              </CopyButton>
+              <div className='absolute right-2 top-2'>
+                <CopyButton text={imageUrl} />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -81,34 +82,47 @@ export function ResultDisplay({ metadata, endPoint }: ResultDisplayProps) {
             <Label htmlFor='meta-tags'>
               以下のメタタグをHTMLのheadセクションに追加してください
             </Label>
-            <div className='flex space-x-2 mt-1'>
+            <div className='relative mt-1'>
               <Textarea
                 id='meta-tags'
                 value={ogpMetaTags}
                 readOnly
                 rows={6}
-                className='flex-1 font-mono text-sm'
+                className='pr-12 font-mono text-sm'
               />
-              <CopyButton text={ogpMetaTags} className='cursor-pointer'>
-                コピー
-              </CopyButton>
+              <div className='absolute right-2 top-2'>
+                <CopyButton text={ogpMetaTags} />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* アクション */}
-      <div className='flex justify-center space-x-4'>
+      <div className='flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4'>
         <Link href='/'>
-          <Button size='lg' className='cursor-pointer'>
-            新しいOGP画像を作成
+          <Button size='lg' className='cursor-pointer w-full sm:w-auto'>
+            新しいOGP画像を作成する
           </Button>
         </Link>
         <a href={imageUrl} target='_blank' rel='noopener noreferrer'>
-          <Button variant='outline' size='lg' className='cursor-pointer'>
+          <Button
+            variant='outline'
+            size='lg'
+            className='cursor-pointer w-full sm:w-auto'
+          >
             画像を新しいタブで開く
           </Button>
         </a>
+        <SaveImageButton
+          imageUrl={imageUrl}
+          filename={`ogp-${metadata.id}.png`}
+          variant='outline'
+          size='lg'
+          className='cursor-pointer w-full sm:w-auto'
+        >
+          画像を保存する
+        </SaveImageButton>
       </div>
     </div>
   );
