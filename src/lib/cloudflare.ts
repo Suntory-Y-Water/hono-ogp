@@ -74,8 +74,6 @@ export async function uploadImageToR2(
 
   const arrayBuffer = await file.arrayBuffer();
 
-  console.log(env.OGP_IMAGES);
-
   await env.OGP_IMAGES.put(key, arrayBuffer, {
     httpMetadata: {
       contentType: file.type,

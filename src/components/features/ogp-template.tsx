@@ -70,7 +70,7 @@ export function OGPTemplate({
                 fontSize: 48,
                 fontWeight: 400,
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-end',
               }}
             >
               {icon && (
