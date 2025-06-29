@@ -515,6 +515,20 @@ export function OGPCreationForm() {
             </Button>
           </form>
         </Form>
+
+        {/* サンプル画像部分 */}
+        <div>
+          <h3 className='leading-none font-semibold text-gray-800 mb-4'>
+            生成イメージサンプル
+          </h3>
+          <div>
+            <img
+              src='/og-sample-image.png'
+              alt='生成時のサンプル画像'
+              className='w-full rounded-lg shadow-lg border border-gray-200'
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
