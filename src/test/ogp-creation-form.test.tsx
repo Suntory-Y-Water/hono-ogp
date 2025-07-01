@@ -63,7 +63,9 @@ describe('OGP画像作成フォーム', () => {
         expect(screen.getByText('アイコン設定（任意）')).toBeInTheDocument();
         expect(screen.getByLabelText('著者名（任意）')).toBeInTheDocument();
         expect(screen.getByText('企業ロゴ設定（任意）')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'OGP画像を生成' })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'OGP画像を生成' }),
+        ).toBeInTheDocument();
       });
 
       it('生成ボタンは無効状態で表示される', () => {
@@ -71,7 +73,9 @@ describe('OGP画像作成フォーム', () => {
         render(<OGPCreationForm />);
 
         // Then: 生成ボタンは無効状態
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         expect(submitButton).toBeDisabled();
       });
 
@@ -97,7 +101,9 @@ describe('OGP画像作成フォーム', () => {
         const user = userEvent.setup();
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
 
         // When: タイトルを入力する
         await user.type(titleInput, 'テストタイトル');
@@ -127,7 +133,9 @@ describe('OGP画像作成フォーム', () => {
         // Given: ユーザーがフォームを開いている
         const user = userEvent.setup();
         render(<OGPCreationForm />);
-        const iconInput = screen.getByPlaceholderText('https://example.com/avatar.jpg');
+        const iconInput = screen.getByPlaceholderText(
+          'https://example.com/avatar.jpg',
+        );
 
         // When: アイコンURLを入力する
         await user.type(iconInput, 'https://example.com/test-icon.jpg');
@@ -144,7 +152,9 @@ describe('OGP画像作成フォーム', () => {
         render(<OGPCreationForm />);
         const logoUrlTab = screen.getAllByText('URLを入力')[1];
         await user.click(logoUrlTab);
-        const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+        const logoInput = screen.getByPlaceholderText(
+          'https://example.com/logo.png',
+        );
 
         // When: 企業ロゴURLを入力する
         await user.type(logoInput, 'https://example.com/test-logo.png');
@@ -196,7 +206,43 @@ describe('OGP画像作成フォーム', () => {
 
         // Then: プレビューが表示される
         expect(screen.getByText('プレビュー:')).toBeInTheDocument();
-        expect(screen.getByAltText('アップロード画像プレビュー')).toBeInTheDocument();
+        expect(
+          screen.getByAltText('アップロード画像プレビュー'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe('ユーザーがサイズ制限を超えた画像をアップロードするとき', () => {
+      it('フォームバリデーションエラーが発生する', async () => {
+        // Given: ユーザーがアップロードタブを選択し、タイトルを入力している
+        const user = userEvent.setup();
+        render(<OGPCreationForm />);
+        
+        // タイトルを入力（生成ボタンを有効にするため）
+        const titleInput = screen.getByLabelText(/タイトル/);
+        await user.type(titleInput, 'テストタイトル');
+        
+        const uploadTab = screen.getAllByText('画像をアップロード')[0];
+        await user.click(uploadTab);
+        const fileInput = screen.getByLabelText(/画像をドラッグ/);
+        // 1MB（1048576バイト）を超える大きなファイルを作成
+        const largeFile = new File(['x'.repeat(1048577)], 'large-icon.png', {
+          type: 'image/png',
+        });
+
+        // When: サイズ制限を超えた画像をアップロードし、生成ボタンをクリックする
+        await user.upload(fileInput, largeFile);
+        const generateButton = screen.getByRole('button', { name: /OGP画像を生成/ });
+        await user.click(generateButton);
+
+        // Then: フォームバリデーションエラーが発生する（エラー表示またはボタン無効化）
+        await waitFor(() => {
+          // フォームエラーまたは無効化されたボタンを確認
+          const hasError = document.querySelector('[data-slot="form-message"]') ||
+                          document.querySelector('.text-red-800') ||
+                          generateButton.hasAttribute('disabled');
+          expect(hasError).toBeTruthy();
+        });
       });
     });
 
@@ -233,10 +279,12 @@ describe('OGP画像作成フォーム', () => {
         render(<OGPCreationForm />);
         const uploadTab = screen.getAllByText('画像をアップロード')[0];
         await user.click(uploadTab);
-        
+
         // When & Then: 貼り付け機能のテストはブラウザ環境での複雑さのため、
         // 基本的なファイルアップロード機能でカバーされているとみなす
-        expect(screen.getByText('JPEG, PNG, GIF, WebP (最大1MB)')).toBeInTheDocument();
+        expect(
+          screen.getByText('JPEG, PNG, GIF, WebP (最大1MB)'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -250,7 +298,9 @@ describe('OGP画像作成フォーム', () => {
 
         // When & Then: 貼り付け機能のテストはブラウザ環境での複雑さのため、
         // 基本的なファイルアップロード機能でカバーされているとみなす
-        expect(screen.getByText('JPEG, PNG, GIF, WebP (最大1MB)')).toBeInTheDocument();
+        expect(
+          screen.getByText('JPEG, PNG, GIF, WebP (最大1MB)'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -267,7 +317,9 @@ describe('OGP画像作成フォーム', () => {
         vi.mocked(ogpActions.generateOGPAction).mockResolvedValue();
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         await user.type(titleInput, 'テストタイトル');
 
         // When: 生成ボタンをクリックする
@@ -275,7 +327,7 @@ describe('OGP画像作成フォーム', () => {
 
         // Then: OGP画像生成処理が呼び出される
         expect(ogpActions.generateOGPAction).toHaveBeenCalledWith(
-          expect.any(FormData)
+          expect.any(FormData),
         );
       });
     });
@@ -285,11 +337,13 @@ describe('OGP画像作成フォーム', () => {
         // Given: ユーザーがタイトルを入力し、生成処理が実行中
         const user = userEvent.setup();
         vi.mocked(ogpActions.generateOGPAction).mockImplementation(
-          () => new Promise(() => {})
+          () => new Promise(() => {}),
         );
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         await user.type(titleInput, 'テストタイトル');
 
         // When: 生成ボタンをクリックする
@@ -308,7 +362,9 @@ describe('OGP画像作成フォーム', () => {
         vi.mocked(ogpActions.generateOGPAction).mockRejectedValue(error);
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         await user.type(titleInput, 'テストタイトル');
 
         // When: 生成ボタンをクリックする
@@ -328,10 +384,14 @@ describe('OGP画像作成フォーム', () => {
         const redirectError = {
           digest: 'NEXT_REDIRECT;/result?id=test',
         };
-        vi.mocked(ogpActions.generateOGPAction).mockRejectedValue(redirectError);
+        vi.mocked(ogpActions.generateOGPAction).mockRejectedValue(
+          redirectError,
+        );
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         await user.type(titleInput, 'テストタイトル');
 
         // When: 生成ボタンをクリックする
@@ -356,7 +416,9 @@ describe('OGP画像作成フォーム', () => {
         const user = userEvent.setup();
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
         await user.type(titleInput, 'テスト');
 
         // When: タイトルを削除する
@@ -373,7 +435,9 @@ describe('OGP画像作成フォーム', () => {
         const user = userEvent.setup();
         render(<OGPCreationForm />);
         const titleInput = screen.getByLabelText('タイトル');
-        const submitButton = screen.getByRole('button', { name: 'OGP画像を生成' });
+        const submitButton = screen.getByRole('button', {
+          name: 'OGP画像を生成',
+        });
 
         // When: 空白のみのタイトルを入力する
         await user.type(titleInput, '   ');
@@ -396,7 +460,9 @@ describe('OGP画像作成フォーム', () => {
         render(<OGPCreationForm />);
         const urlTab = screen.getAllByText('URLを入力')[0];
         const uploadTab = screen.getAllByText('画像をアップロード')[0];
-        expect(screen.getByPlaceholderText('https://example.com/avatar.jpg')).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText('https://example.com/avatar.jpg'),
+        ).toBeInTheDocument();
 
         // When: アップロードタブに切り替える
         await user.click(uploadTab);
@@ -408,7 +474,9 @@ describe('OGP画像作成フォーム', () => {
         await user.click(urlTab);
 
         // Then: URL入力機能が表示される
-        expect(screen.getByPlaceholderText('https://example.com/avatar.jpg')).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText('https://example.com/avatar.jpg'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -419,7 +487,9 @@ describe('OGP画像作成フォーム', () => {
         render(<OGPCreationForm />);
         const urlTab = screen.getAllByText('URLを入力')[1];
         const uploadTab = screen.getAllByText('画像をアップロード')[1];
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText('https://example.com/logo.png'),
+        ).toBeInTheDocument();
 
         // When: アップロードタブに切り替える
         await user.click(uploadTab);
@@ -431,7 +501,9 @@ describe('OGP画像作成フォーム', () => {
         await user.click(urlTab);
 
         // Then: URL入力機能が表示される
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText('https://example.com/logo.png'),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -449,7 +521,10 @@ describe('OGP画像作成フォーム', () => {
         // Then: サンプル画像が表示される
         expect(screen.getByText('生成イメージサンプル')).toBeInTheDocument();
         expect(screen.getByAltText('生成時のサンプル画像')).toBeInTheDocument();
-        expect(screen.getByAltText('生成時のサンプル画像')).toHaveAttribute('src', '/og-sample-image.png');
+        expect(screen.getByAltText('生成時のサンプル画像')).toHaveAttribute(
+          'src',
+          '/og-sample-image.png',
+        );
       });
     });
   });
