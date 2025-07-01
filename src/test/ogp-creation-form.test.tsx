@@ -59,7 +59,7 @@ describe('OGP画像作成フォーム', () => {
         // Then: 必要な入力項目が表示される
         expect(screen.getByText('OGP画像設定')).toBeInTheDocument();
         expect(screen.getByLabelText('タイトル')).toBeInTheDocument();
-        expect(screen.getByLabelText('グラデーション')).toBeInTheDocument();
+        expect(screen.getByText('グラデーション')).toBeInTheDocument();
         expect(screen.getByText('アイコン設定（任意）')).toBeInTheDocument();
         expect(screen.getByLabelText('著者名（任意）')).toBeInTheDocument();
         expect(screen.getByText('企業ロゴ設定（任意）')).toBeInTheDocument();
@@ -217,11 +217,11 @@ describe('OGP画像作成フォーム', () => {
         // Given: ユーザーがアップロードタブを選択し、タイトルを入力している
         const user = userEvent.setup();
         render(<OGPCreationForm />);
-        
+
         // タイトルを入力（生成ボタンを有効にするため）
         const titleInput = screen.getByLabelText(/タイトル/);
         await user.type(titleInput, 'テストタイトル');
-        
+
         const uploadTab = screen.getAllByText('画像をアップロード')[0];
         await user.click(uploadTab);
         const fileInput = screen.getByLabelText(/画像をドラッグ/);
@@ -232,15 +232,18 @@ describe('OGP画像作成フォーム', () => {
 
         // When: サイズ制限を超えた画像をアップロードし、生成ボタンをクリックする
         await user.upload(fileInput, largeFile);
-        const generateButton = screen.getByRole('button', { name: /OGP画像を生成/ });
+        const generateButton = screen.getByRole('button', {
+          name: /OGP画像を生成/,
+        });
         await user.click(generateButton);
 
         // Then: フォームバリデーションエラーが発生する（エラー表示またはボタン無効化）
         await waitFor(() => {
           // フォームエラーまたは無効化されたボタンを確認
-          const hasError = document.querySelector('[data-slot="form-message"]') ||
-                          document.querySelector('.text-red-800') ||
-                          generateButton.hasAttribute('disabled');
+          const hasError =
+            document.querySelector('[data-slot="form-message"]') ||
+            document.querySelector('.text-red-800') ||
+            generateButton.hasAttribute('disabled');
           expect(hasError).toBeTruthy();
         });
       });

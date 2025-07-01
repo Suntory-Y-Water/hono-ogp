@@ -16,6 +16,8 @@ import { saveOGPMetadata, uploadImageToR2 } from '@/lib/cloudflare';
 export async function generateOGPAction(formData: FormData): Promise<void> {
   const title = formData.get('title') as string;
   const gradientPreset = formData.get('gradient') as GradientPresetName;
+  const customGradientFrom = formData.get('customGradientFrom') as string | null;
+  const customGradientTo = formData.get('customGradientTo') as string | null;
   const icon = formData.get('icon') as string | null;
   const iconFile = formData.get('iconFile') as File | null;
   const author = formData.get('author') as string | null;
@@ -27,7 +29,25 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     throw new Error('タイトルは必須です');
   }
 
-  if (!gradientPreset || !GRADIENT_PRESETS[gradientPreset]) {
+  // グラデーションバリデーション（プリセットまたはカスタム）
+  let gradient: { from: string; to: string };
+  
+  if (customGradientFrom && customGradientTo) {
+    // カスタムグラデーションの場合
+    if (!/^#[0-9A-Fa-f]{6}$/.test(customGradientFrom)) {
+      throw new Error('有効な開始色カラーコード（#FFFFFF形式）を入力してください');
+    }
+    if (!/^#[0-9A-Fa-f]{6}$/.test(customGradientTo)) {
+      throw new Error('有効な終了色カラーコード（#FFFFFF形式）を入力してください');
+    }
+    gradient = {
+      from: customGradientFrom,
+      to: customGradientTo
+    };
+  } else if (gradientPreset && GRADIENT_PRESETS[gradientPreset]) {
+    // プリセットグラデーションの場合
+    gradient = GRADIENT_PRESETS[gradientPreset];
+  } else {
     throw new Error('有効なグラデーションを選択してください');
   }
 
@@ -91,7 +111,7 @@ export async function generateOGPAction(formData: FormData): Promise<void> {
     }
   }
 
-  const gradient = GRADIENT_PRESETS[gradientPreset];
+  // gradientは上記でバリデーション済み
 
   // 一意のIDを生成
   const id = crypto.randomUUID();
