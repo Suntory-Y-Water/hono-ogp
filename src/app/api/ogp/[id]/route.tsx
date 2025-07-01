@@ -71,9 +71,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         ],
       },
     );
-  } catch (error) {
-    console.error('OGP image generation failed:', error);
-
+  } catch (_error) {
     // エラー時のフォールバック画像
     return new ImageResponse(
       <OGPTemplate

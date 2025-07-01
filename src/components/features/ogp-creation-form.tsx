@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/form';
 import { GRADIENT_PRESETS, type GradientPresetName } from '@/lib/constants';
 import { generateOGPAction } from '@/lib/actions/ogp-actions';
+import { GradientPreview } from './gradient-preview';
 
 const formSchema = z.object({
   title: z
@@ -42,6 +43,20 @@ const formSchema = z.object({
       (val) => val in GRADIENT_PRESETS,
       '有効なグラデーションを選択してください',
     ) as z.ZodType<GradientPresetName>,
+  customGradientFrom: z
+    .string()
+    .regex(
+      /^#[0-9A-Fa-f]{6}$/,
+      '有効なカラーコード（#FFFFFF形式）を入力してください',
+    )
+    .optional(),
+  customGradientTo: z
+    .string()
+    .regex(
+      /^#[0-9A-Fa-f]{6}$/,
+      '有効なカラーコード（#FFFFFF形式）を入力してください',
+    )
+    .optional(),
   icon: z
     .string()
     .url('有効なURLを入力してください')
@@ -108,12 +123,17 @@ export function OGPCreationForm() {
   const [logoMode, setLogoMode] = useState<'url' | 'upload'>('url');
   const [uploadedLogoFile, setUploadedLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>('');
+  const [gradientMode, setGradientMode] = useState<'preset' | 'custom'>(
+    'preset',
+  );
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       gradient: 'ocean',
+      customGradientFrom: '#667eea',
+      customGradientTo: '#764ba2',
       icon: '',
       author: '',
       iconFile: undefined,
@@ -132,7 +152,18 @@ export function OGPCreationForm() {
 
         // 必須フィールド
         formData.append('title', data.title);
-        formData.append('gradient', data.gradient);
+        if (gradientMode === 'preset') {
+          formData.append('gradient', data.gradient);
+        } else {
+          formData.append(
+            'customGradientFrom',
+            data.customGradientFrom || '#667eea',
+          );
+          formData.append(
+            'customGradientTo',
+            data.customGradientTo || '#764ba2',
+          );
+        }
         formData.append('icon', data.icon || '');
         formData.append('author', data.author || '');
         formData.append('companyLogo', data.companyLogo || '');
@@ -244,6 +275,15 @@ export function OGPCreationForm() {
     { value: 'fire', label: 'ファイア' },
   ];
 
+  // 現在選択されているグラデーション値を取得
+  const currentGradient =
+    gradientMode === 'preset'
+      ? GRADIENT_PRESETS[form.watch('gradient') as GradientPresetName]
+      : {
+          from: form.watch('customGradientFrom') || '#667eea',
+          to: form.watch('customGradientTo') || '#764ba2',
+        };
+
   return (
     <Card>
       <CardHeader>
@@ -271,41 +311,117 @@ export function OGPCreationForm() {
             />
 
             {/* グラデーション選択 */}
-            <FormField
-              control={form.control}
-              name='gradient'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>グラデーション</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='グラデーションを選択' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {gradientOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className='flex items-center space-x-2'>
-                            <div
-                              className='w-4 h-4 rounded-full'
-                              style={{
-                                background: `linear-gradient(135deg, ${GRADIENT_PRESETS[option.value].from}, ${GRADIENT_PRESETS[option.value].to})`,
-                              }}
-                            />
-                            <span>{option.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className='space-y-2'>
+              <div className='flex items-center gap-2 text-sm leading-none font-medium select-none'>
+                グラデーション
+              </div>
+              <Tabs
+                value={gradientMode}
+                onValueChange={(value) =>
+                  setGradientMode(value as 'preset' | 'custom')
+                }
+              >
+                <TabsList className='grid w-full grid-cols-2'>
+                  <TabsTrigger value='preset'>プリセット</TabsTrigger>
+                  <TabsTrigger value='custom'>カスタム</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value='preset' className='space-y-2'>
+                  <FormField
+                    control={form.control}
+                    name='gradient'
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder='グラデーションを選択' />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {gradientOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                <div className='flex items-center space-x-2'>
+                                  <div
+                                    className='w-4 h-4 rounded-full'
+                                    style={{
+                                      background: `linear-gradient(135deg, ${GRADIENT_PRESETS[option.value].from}, ${GRADIENT_PRESETS[option.value].to})`,
+                                    }}
+                                  />
+                                  <span>{option.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value='custom' className='space-y-4'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <FormField
+                      control={form.control}
+                      name='customGradientFrom'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>開始色</FormLabel>
+                          <FormControl>
+                            <div className='flex items-center space-x-2'>
+                              <input
+                                type='color'
+                                {...field}
+                                className='w-12 h-10 border border-gray-300 rounded cursor-pointer'
+                              />
+                              <Input
+                                type='text'
+                                placeholder='#667eea'
+                                {...field}
+                                className='flex-1'
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name='customGradientTo'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>終了色</FormLabel>
+                          <FormControl>
+                            <div className='flex items-center space-x-2'>
+                              <input
+                                type='color'
+                                {...field}
+                                className='w-12 h-10 border border-gray-300 rounded cursor-pointer'
+                              />
+                              <Input
+                                type='text'
+                                placeholder='#764ba2'
+                                {...field}
+                                className='flex-1'
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
 
             {/* アイコン設定 */}
             <div className='space-y-2'>
@@ -515,6 +631,14 @@ export function OGPCreationForm() {
             </Button>
           </form>
         </Form>
+
+        {/* グラデーションプレビュー */}
+        <div>
+          <h3 className='leading-none font-semibold text-gray-800 mb-4'>
+            グラデーションプレビュー
+          </h3>
+          <GradientPreview gradient={currentGradient} />
+        </div>
 
         {/* サンプル画像部分 */}
         <div>
